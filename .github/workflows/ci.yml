@@ -69,14 +69,16 @@ jobs:
             --redact
 
       - name: Run tests with coverage
-        # NOTE: --cov-fail-under is 0 until PR #2 lands the corpus generator.
-        # Will be raised to 80 in PR #2 once there is real source code to measure.
+        # Coverage threshold raised from 0 → 80 in PR #2 once corpus/generate.py
+        # landed with real source to measure. Current measured coverage on
+        # corpus/generate.py is 97.7%; 80 leaves room for harness PRs while
+        # keeping a real bar.
         run: |
           uv run pytest \
             --cov \
             --cov-report=term-missing \
             --cov-report=xml \
-            --cov-fail-under=0
+            --cov-fail-under=80
 
       - name: Upload coverage report
         if: matrix.python-version == '3.11'
