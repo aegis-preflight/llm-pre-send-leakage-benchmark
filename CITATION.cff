@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+title: "LLM Pre-Send Leakage Benchmark"
+message: "If you use this benchmark in your research or work, please cite it as below."
+type: dataset
+authors:
+  - given-names: Bikram
+    family-names: Vikash
+    affiliation: Aegis Preflight
+    website: "https://aegispreflight.com"
+repository-code: "https://github.com/aegis-preflight/llm-pre-send-leakage-benchmark"
+url: "https://github.com/aegis-preflight/llm-pre-send-leakage-benchmark"
+abstract: >-
+  An empirical benchmark of pre-send PII, secret, and PHI leakage across
+  20 popular AI tools. Measures what data actually leaves the user's device
+  before reaching the underlying model. Includes a synthesized 100-prompt
+  test corpus (Faker-generated, seeded, no real PII), a reproducible test
+  harness for API-direct and web-based tools, and per-tool scoring on a
+  5-dimension rubric (pre-send redaction, user notification, transit
+  encryption, vendor retention TOS, audit log accessibility). Maps to
+  OWASP LLM06 (Sensitive Information Disclosure).
+keywords:
+  - LLM
+  - large-language-model
+  - AI-security
+  - data-leakage
+  - PII
+  - PHI
+  - OWASP-LLM06
+  - benchmark
+  - pre-send
+  - data-loss-prevention
+  - AI-DLP
+license: MIT
+version: 0.1.0-wip
+date-released: "2026-06-29"

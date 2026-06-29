@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Secrets and local config — NEVER commit
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+
+# Raw capture tempfiles (sanitized finals go in results/raw/*.json once locked)
+results/raw/*.tmp
+results/raw/*.partial
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build
+build/
+dist/
