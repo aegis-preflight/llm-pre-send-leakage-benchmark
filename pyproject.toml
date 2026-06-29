@@ -1,0 +1,164 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llm-pre-send-leakage-benchmark"
+version = "0.1.0"
+description = "Empirical benchmark of pre-send PII / secret leakage across 20 popular AI tools."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Bikram Vikash" }]
+requires-python = ">=3.11"
+keywords = [
+  "llm",
+  "ai-security",
+  "data-leakage",
+  "pii",
+  "owasp-llm06",
+  "benchmark",
+  "pre-send",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Information Technology",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+  "Topic :: Scientific/Engineering",
+]
+
+dependencies = ["faker>=25.0"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "mypy>=1.10",
+  "ruff>=0.5",
+  "pre-commit>=3.5",
+  "bandit[toml]>=1.7",
+]
+harness-anthropic = ["anthropic>=0.30"]
+harness-openai = ["openai>=1.30"]
+harness-bedrock = ["boto3>=1.34"]
+harness-azure = ["openai>=1.30"]
+harness-all = [
+  "anthropic>=0.30",
+  "openai>=1.30",
+  "boto3>=1.34",
+]
+
+[project.urls]
+Homepage = "https://github.com/aegis-preflight/llm-pre-send-leakage-benchmark"
+Repository = "https://github.com/aegis-preflight/llm-pre-send-leakage-benchmark"
+Issues = "https://github.com/aegis-preflight/llm-pre-send-leakage-benchmark/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["corpus", "harness"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+extend-exclude = [".venv", "venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = [
+  "E",    # pycodestyle errors
+  "W",    # pycodestyle warnings
+  "F",    # pyflakes
+  "B",    # flake8-bugbear
+  "I",    # isort
+  "UP",   # pyupgrade
+  "N",    # pep8-naming
+  "S",    # flake8-bandit (security)
+  "C4",   # flake8-comprehensions
+  "RET",  # flake8-return
+  "SIM",  # flake8-simplify
+  "RUF",  # ruff-specific
+  "D",    # pydocstyle
+  "ANN",  # flake8-annotations
+  "PTH",  # flake8-use-pathlib
+  "TID",  # flake8-tidy-imports
+  "TCH",  # flake8-type-checking
+]
+ignore = [
+  "D203",  # one-blank-line-before-class (conflicts with D211)
+  "D213",  # multi-line-summary-second-line (conflicts with D212)
+  "ANN401", # allow Any in specific cases with rationale
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+  "S101",  # assert is fine in tests
+  "D100",  # missing module docstring
+  "D103",  # missing function docstring (tests are self-documenting via name)
+  "ANN201", # tests don't need return type annotations
+]
+"**/__init__.py" = ["D104"]  # missing package docstring (empty init files are fine)
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+check_untyped_defs = true
+no_implicit_optional = true
+no_implicit_reexport = true
+show_error_codes = true
+show_column_numbers = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = ["faker.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = [
+  "-ra",
+  "--strict-markers",
+  "--strict-config",
+]
+markers = [
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "integration: marks integration tests (require API keys or network)",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["corpus", "harness"]
+omit = ["tests/*", "*/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "raise NotImplementedError",
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+]
+show_missing = true
+precision = 1
+
+[tool.bandit]
+exclude_dirs = ["tests", "build", "dist", ".venv"]
+skips = ["B101"]  # assert is allowed; tests use it heavily
