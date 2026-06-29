@@ -1,0 +1,32 @@
+# Default to LF line endings (cross-platform consistency)
+* text=auto eol=lf
+
+# Explicit text files
+*.py text eol=lf
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.cff text eol=lf
+*.cfg text eol=lf
+*.ini text eol=lf
+Makefile text eol=lf
+*.mk text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.svg text eol=lf
+
+# Generated / vendored — keep out of language stats and review noise
+uv.lock linguist-generated=true
+requirements.txt linguist-generated=true
+corpus/corpus_v*.jsonl linguist-vendored=true linguist-language=JSON
+
+# Files shown in less-detail in PR diff views
+CHANGELOG.md linguist-documentation=true
