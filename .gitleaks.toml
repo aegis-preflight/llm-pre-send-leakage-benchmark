@@ -1,0 +1,52 @@
+# gitleaks configuration — secret scanning.
+#
+# Inherits the tuned default ruleset and adds allowlists for paths and patterns
+# that contain synthetic data (Faker-generated PII / API secrets) or documented
+# placeholders. The benchmark's test corpus is synthetic by design — any
+# "API key" in this repo is a syntactically-valid but inactive placeholder.
+#
+# Run locally:    gitleaks detect --config .gitleaks.toml
+# Pre-commit:     enabled via .pre-commit-config.yaml
+# CI:             enabled via .github/workflows/ci.yml
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic test data and documented placeholders are not real secrets."
+
+paths = [
+  # Synthesized test corpus — Faker-generated, deterministic, no real PII or secrets.
+  '''corpus/corpus_v\d+\.jsonl$''',
+  '''corpus/corpus_v\d+\.expected\.jsonl$''',
+
+  # Test files use mock keys and synthetic credentials.
+  '''(^|/)tests/''',
+
+  # Lockfiles and dependency manifests contain hashes, not secrets.
+  '''.*\.lock$''',
+  '''requirements\.txt$''',
+  '''uv\.lock$''',
+
+  # Documentation that shows placeholder env-var formats.
+  '''(^|/)README\.md$''',
+  '''(^|/)CONTRIBUTING\.md$''',
+  '''(^|/)SECURITY\.md$''',
+]
+
+regexes = [
+  # Documented env-var NAMES (not values) appearing in docs and help text.
+  '''ANTHROPIC_API_KEY''',
+  '''OPENAI_API_KEY''',
+  '''AZURE_OPENAI_API_KEY''',
+  '''AWS_ACCESS_KEY_ID''',
+  '''AWS_SECRET_ACCESS_KEY''',
+
+  # Placeholder example values shown in README / docs.
+  '''sk-ant-\.\.\.''',
+  '''sk-\.\.\.''',
+  '''AKIA[A-Z0-9]{16}EXAMPLE''',
+
+  # Anthropic-published documentation placeholder format.
+  '''xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx''',
+]
