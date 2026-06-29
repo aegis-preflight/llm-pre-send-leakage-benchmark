@@ -1,5 +1,13 @@
 # LLM Pre-Send Leakage Benchmark
 
+[![CI](https://github.com/aegis-preflight/llm-pre-send-leakage-benchmark/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aegis-preflight/llm-pre-send-leakage-benchmark/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy%20strict-1F5082.svg)](https://mypy.readthedocs.io/)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg)](https://github.com/pre-commit/pre-commit)
+[![OWASP LLM06](https://img.shields.io/badge/OWASP-LLM06%20Sensitive%20Info%20Disclosure-005f8b.svg)](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
+
 **Status:** Work in progress · target publication **2026-07-23** (paper + v1.0 dataset)
 
 Empirical measurement of pre-send PII / secret / PHI leakage across 20 popular AI tools. Measures what actually leaves the user's device before reaching the model.
