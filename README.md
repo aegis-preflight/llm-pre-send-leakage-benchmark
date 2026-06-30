@@ -8,17 +8,19 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg)](https://github.com/pre-commit/pre-commit)
 [![OWASP LLM06](https://img.shields.io/badge/OWASP-LLM06%20Sensitive%20Info%20Disclosure-005f8b.svg)](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
 
-**Status:** Work in progress · target publication **2026-07-23** (paper + v1.0 dataset)
+**Status:** Work in progress. Publication: **2026-07-23** (paper + v1.0 dataset).
 
-Empirical measurement of pre-send PII / secret / PHI leakage across 20 popular AI tools. Measures what actually leaves the user's device before reaching the model.
+Measures what AI tools send to their model providers. Twenty tools, one hundred synthesized prompts, five-dimension scoring rubric. Open methodology, MIT-licensed.
 
 ---
 
-## TL;DR
+## Overview
 
-Most users assume the AI tool they paste data into performs some form of client-side redaction before sending the prompt to the model. This benchmark tests whether that assumption holds. 100 synthesized prompts × 20 tools × 5-dimension scoring rubric. Reproducible methodology. MIT-licensed harness, corpus, and results.
+Users paste sensitive data into AI tools every day. The question this benchmark asks is narrow: of the data that goes in, how much reaches the model provider's servers?
 
-Findings publish 2026-07-23. Until then this repo is a WIP — see [Status](#status--timeline) below for the gate schedule.
+One hundred synthesized prompts span PII, API secrets, and PHI. Each prompt is submitted to twenty tools while outbound traffic is captured at the network layer. Tools are scored on five dimensions: pre-send redaction, user notification, transit encryption, vendor retention, and audit log accessibility. Harness, corpus, and results are MIT-licensed.
+
+Publication is 2026-07-23. The Status section below has the schedule.
 
 ---
 
@@ -49,13 +51,13 @@ The benchmark maps directly to **OWASP LLM06 — Sensitive Information Disclosur
 
 ## What is NOT measured
 
-To keep claims defensible, the benchmark deliberately excludes:
+The benchmark deliberately excludes the following. Each is a real concern; each belongs to a different paper.
 
-- **Output redaction** (model's response back to user) — different problem class, future paper
-- **Prompt injection / jailbreaking** — orthogonal threat model
-- **Training data extraction attacks** — out of scope
-- **Real-time behavior under load** — this is a correctness benchmark, not a performance one
-- **Enterprise / DLP-integrated tier behavior** — we test what the typical user sees, not the locked-down 1% configuration. Each per-tool result calls out the tested tier explicitly.
+- **Output redaction** (the model's response back to the user). A different problem class.
+- **Prompt injection and jailbreaking.** Orthogonal threat model.
+- **Training data extraction attacks.** Out of scope.
+- **Behavior under load.** This is a correctness benchmark, not a performance one.
+- **Enterprise or DLP-integrated tier behavior.** The tested configuration is the one a typical user sees. Each per-tool result records the tier that was tested.
 
 ---
 
@@ -95,9 +97,9 @@ Full schema: [`corpus/corpus_schema.md`](corpus/corpus_schema.md)
 
 ## Reproducibility
 
-**Full guide:** [`REPRODUCING.md`](REPRODUCING.md) — what runs today, what unlocks each PR, how to verify methodology.
+The full reproduction guide is in [`REPRODUCING.md`](REPRODUCING.md). It describes what runs against `main` today, what becomes available at each release, and how to verify the methodology.
 
-**Quick verify** (proves the corpus is byte-deterministic — 30 seconds):
+Quick verification that the corpus is byte-deterministic (about thirty seconds):
 
 ```bash
 git clone https://github.com/aegis-preflight/llm-pre-send-leakage-benchmark.git
@@ -107,20 +109,20 @@ make verify-corpus
 # Expected: ✓ Corpus is reproducible — byte-identical from DEFAULT_SEED=20260623
 ```
 
-The automated harness (estimated Jul 7), scoring (~Jul 11), and per-tool results land progressively. See [`REPRODUCING.md`](REPRODUCING.md) for what's available at each stage. Full methodology lands in `paper/paper.md` at the `v1.0.0` tag.
+The automated harness ships around 7 July, scoring around 11 July, and per-tool results in stages after that. The full methodology lands in `paper/paper.md` at the `v1.0.0` tag.
 
 ---
 
 ## Status & timeline
 
-Hard gates from project plan:
+Key dates for the v1.0.0 release.
 
-| Date | Gate |
+| Date | Milestone |
 |---|---|
-| **2026-07-03** | Hypothesis pre-test (3 tools) confirmed OR headline pivoted |
-| **2026-07-05** | Co-author signed OR Plan B (solo + 3 named peer reviewers) |
-| **2026-07-19** | Paper LOCKED — no further edits |
-| **2026-07-23** | Publication · `v1.0.0` tag · paper + harness + corpus + results released |
+| **2026-07-03** | Hypothesis pre-test against three tools. Confirm or pivot the headline. |
+| **2026-07-05** | Co-author signed, or Plan B (solo with three named peer reviewers). |
+| **2026-07-19** | Paper locked. No further edits. |
+| **2026-07-23** | Publication. `v1.0.0` tag. Paper, harness, corpus, and results released together. |
 
 ---
 
@@ -149,21 +151,21 @@ MIT — see [`LICENSE`](LICENSE). Free to use, reproduce, modify, and redistribu
 
 ## Acknowledgments
 
-Detection ground-truth labeling uses the detection patterns underlying Aegis Preflight's runtime data control product. The benchmark's methodology and scoring rubric are independent of any specific Aegis product feature; results would be reproducible with any equivalent PII / secret detector.
+The benchmark is hosted by Aegis Preflight. Microsoft Presidio is used as the open-source cross-check on a ten percent sample of the corpus, so the methodology and scoring rubric do not depend on any specific Aegis component. Results are reproducible with any equivalent PII detector.
 
-Aegis hosts the research as part of its category-formation work around runtime AI data governance ("preflight" — checks that run *before* data leaves the user's intent boundary). Hosting is not a product endorsement: the paper makes no Aegis-specific claims, and all measurements are about third-party AI tools.
+The paper makes no Aegis-specific claims. Measurements are of third-party AI tools.
 
-**Tooling:** Portions of this work were drafted with assistance from Claude (Anthropic). All methodology decisions, peer review, test execution, and accountability for the published findings rest with the named human authors and reviewers.
+**Tooling.** Portions of this work were drafted with assistance from Claude (Anthropic). Methodology decisions, peer review, and test execution were performed by the named human authors and reviewers.
 
 ---
 
 ## Contributing
 
-This is a single-publication artifact, not an actively-developed product. Issues and PRs welcome for:
+This is a single-publication artifact, not an actively-developed product. Issues and pull requests are welcome for:
 
-- Methodology questions or proposed improvements (open an issue first to discuss)
-- Bug reports in the harness / corpus generator
-- Replication results — if you re-run the benchmark and get different numbers, please open an issue with logs
-- Corpus extensions for `corpus_v2.jsonl` (future work)
+- Methodology questions or proposed improvements. Open an issue first to discuss.
+- Bug reports in the harness or corpus generator.
+- Replication results. If you re-run the benchmark and get different numbers, open an issue with the logs.
+- Corpus extensions for a future `corpus_v2.jsonl`.
 
-Not accepted: vendor PR / counter-narratives. The repo is for the research artifact, not for vendor debates.
+Disputes over specific findings should take the form of reproducible counter-evidence (rerun the harness, share the captures). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the development workflow.
