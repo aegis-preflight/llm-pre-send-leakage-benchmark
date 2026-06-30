@@ -60,4 +60,4 @@ diff <(jq -S . corpus/corpus_v1.jsonl) <(jq -S . corpus/corpus_v1.expected.jsonl
 
 ## Ground-truth detector
 
-`aegis_detect` field is populated by running the [aegis-core](https://aegispreflight.com) detection library against `prompt_text`. The library implements regex-based detection plus Luhn (credit card), IBAN checksum, and SSN structural validation. The detection patterns are documented in the published paper; equivalent open-source detectors (e.g., Microsoft Presidio) will be cross-validated against ~10% of the corpus to forestall "you graded your own homework" critiques.
+The `aegis_detect` field is populated by running the [aegis-core](https://aegispreflight.com) detection library against `prompt_text`. The library implements regex-based detection plus Luhn (credit card), IBAN checksum, and SSN structural validation. The detection patterns are documented in the published paper. As an open-source cross-check, [Microsoft Presidio](https://microsoft.github.io/presidio/) is run against a ten percent sample of the corpus and the results compared.
