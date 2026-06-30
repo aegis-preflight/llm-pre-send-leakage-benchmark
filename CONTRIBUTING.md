@@ -76,8 +76,8 @@ Use [GitHub Issues](https://github.com/aegis-preflight/llm-pre-send-leakage-benc
 
 For security vulnerabilities, see [`SECURITY.md`](SECURITY.md) — do not open a public issue.
 
-## What we don't accept
+## Contributions that will not be accepted
 
-- **Vendor PR / counter-narratives.** The repo is for the research artifact, not for vendor debates. If your company is named in the benchmark and you dispute a finding, open a methodology issue with reproducible evidence — that's the only credible response.
-- **Closed-source dependencies.** Every runtime dependency must be MIT, Apache-2.0, or BSD-licensed.
-- **Real PII / credentials.** Any contribution containing real personal data, real API keys, or scraped human data will be rejected and the contributor blocked.
+- **Vendor responses to specific findings.** If your company is named in the benchmark and you dispute a finding, open a methodology issue and include reproducible counter-evidence. Marketing arguments without data are not the right form for this repository.
+- **Closed-source runtime dependencies.** Every runtime dependency must be MIT, Apache-2.0, or BSD-licensed.
+- **Real PII or working credentials.** Contributions that include real personal data, working API keys, or scraped human data will be rejected. The corpus is synthetic by design and stays that way.
