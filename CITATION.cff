@@ -11,13 +11,13 @@ repository-code: "https://github.com/aegis-preflight/llm-pre-send-leakage-benchm
 url: "https://github.com/aegis-preflight/llm-pre-send-leakage-benchmark"
 abstract: >-
   An empirical benchmark of pre-send PII, secret, and PHI leakage across
-  20 popular AI tools. Measures what data actually leaves the user's device
-  before reaching the underlying model. Includes a synthesized 100-prompt
-  test corpus (Faker-generated, seeded, no real PII), a reproducible test
-  harness for API-direct and web-based tools, and per-tool scoring on a
-  5-dimension rubric (pre-send redaction, user notification, transit
-  encryption, vendor retention TOS, audit log accessibility). Maps to
-  OWASP LLM06 (Sensitive Information Disclosure).
+  20 popular AI tools. Measures what data leaves the user's device before
+  reaching the underlying model. Includes a synthesized 100-prompt test
+  corpus (Faker-generated, seeded, no real PII), a reproducible test harness
+  for API-direct and web-based tools, and per-tool scoring on a five-dimension
+  rubric covering pre-send redaction, user notification, transit encryption,
+  vendor retention TOS, and audit log accessibility. Maps to OWASP LLM06
+  (Sensitive Information Disclosure).
 keywords:
   - LLM
   - large-language-model
