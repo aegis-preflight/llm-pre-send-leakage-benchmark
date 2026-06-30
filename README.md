@@ -95,17 +95,19 @@ Full schema: [`corpus/corpus_schema.md`](corpus/corpus_schema.md)
 
 ## Reproducibility
 
+**Full guide:** [`REPRODUCING.md`](REPRODUCING.md) — what runs today, what unlocks each PR, how to verify methodology.
+
+**Quick verify** (proves the corpus is byte-deterministic — 30 seconds):
+
 ```bash
-# Generate the corpus (deterministic, seeded)
-python corpus/generate.py
-
-# Run an API harness against one tool (requires the tool's API key in env)
-ANTHROPIC_API_KEY=sk-ant-... python harness/api/anthropic.py
-
-# Manual web-tool testing (see harness/web/ for per-tool protocol)
+git clone https://github.com/aegis-preflight/llm-pre-send-leakage-benchmark.git
+cd llm-pre-send-leakage-benchmark
+make dev-install
+make verify-corpus
+# Expected: ✓ Corpus is reproducible — byte-identical from DEFAULT_SEED=20260623
 ```
 
-Full methodology and per-tool results land in `paper/paper.md` at the `v1.0.0` tag.
+The automated harness (estimated Jul 7), scoring (~Jul 11), and per-tool results land progressively. See [`REPRODUCING.md`](REPRODUCING.md) for what's available at each stage. Full methodology lands in `paper/paper.md` at the `v1.0.0` tag.
 
 ---
 
