@@ -9,7 +9,7 @@ SHELL := /bin/bash
 
 UV ?= uv
 
-.PHONY: help install dev-install hooks lint format format-check type-check security secret-scan test test-cov ci-precheck clean
+.PHONY: help install dev-install hooks lint format format-check type-check security secret-scan test test-cov verify-corpus ci-precheck clean
 
 help:  ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -51,6 +51,18 @@ test:  ## Run pytest.
 
 test-cov:  ## Run pytest with coverage report (also writes htmlcov/).
 	$(UV) run pytest --cov --cov-report=term-missing --cov-report=html --cov-report=xml
+
+verify-corpus:  ## Reproduce corpus_v1.jsonl from scratch and confirm byte-identical output.
+	@$(UV) run python corpus/generate.py --output /tmp/_corpus_check.jsonl >/dev/null 2>&1
+	@if diff -q corpus/corpus_v1.jsonl /tmp/_corpus_check.jsonl > /dev/null; then \
+		echo "✓ Corpus is reproducible — byte-identical from DEFAULT_SEED=20260623"; \
+		rm -f /tmp/_corpus_check.jsonl; \
+	else \
+		echo "✗ Corpus NOT reproducible — diff (first 20 lines):"; \
+		diff corpus/corpus_v1.jsonl /tmp/_corpus_check.jsonl | head -20; \
+		rm -f /tmp/_corpus_check.jsonl; \
+		exit 1; \
+	fi
 
 ci-precheck:  ## Run every CI gate locally. Run BEFORE git push to catch failures.
 	@echo "=== 1/5 Lint (ruff check) ==="
