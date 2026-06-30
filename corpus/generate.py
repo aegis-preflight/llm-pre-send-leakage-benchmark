@@ -709,10 +709,16 @@ def generate_mixed(fake: Faker, rng: random.Random) -> list[CorpusRecord]:
     """Generate 5 multi-PII prompts that combine categories realistically."""
     records: list[CorpusRecord] = []
 
+    # SSN is a US-specific concept — pin to en_US for the same reason
+    # generate_identifiers does. Without this, fake.ssn() randomly picks
+    # between en_US / en_GB (NI number) / de_DE (Steuer-ID) under
+    # multi-locale Faker, producing labels that don't match content.
+    us_fake = fake["en_US"]
+
     # 1: SSN + email
     prompt_1 = (
         f"Customer service note: please reach out to {fake.email()} "
-        f"about their SSN {fake.ssn()} update request — they called yesterday."
+        f"about their SSN {us_fake.ssn()} update request — they called yesterday."
     )
     records.append(
         _make_record(
