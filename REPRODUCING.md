@@ -17,7 +17,7 @@ This guide describes what is reproducible against the current `main` branch and 
 
 ## What the benchmark measures
 
-The question is narrow. When a user submits a prompt to an AI tool, what reaches the model provider's servers? The corpus contains one hundred synthesized prompts spanning PII, API secrets, and PHI. Each prompt is submitted to a tool; the outbound network payload is captured and scored against the input. Five dimensions: pre-send redaction, user notification, transit encryption, vendor retention TOS, and audit log accessibility. The benchmark maps to OWASP LLM06 (Sensitive Information Disclosure). The corpus is MIT-licensed and locked at the `v1.0.0` tag.
+The question is narrow. When a user submits a prompt to an AI tool, what reaches the model provider's servers? The corpus contains 100 synthesized prompts spanning PII, API secrets, and PHI. Each prompt is submitted to a tool; the outbound network payload is captured and scored against the input. Five dimensions: pre-send redaction, user notification, transit encryption, vendor retention TOS, and audit log accessibility. The benchmark maps to OWASP LLM06 (Sensitive Information Disclosure). The corpus is MIT-licensed and locked at the `v1.0.0` tag.
 
 ## What you can do today
 
@@ -32,7 +32,7 @@ make verify-corpus
 # ✓ Corpus is reproducible — byte-identical from DEFAULT_SEED=20260623
 ```
 
-An empty diff confirms that the same seed produces the same hundred prompts in the same order. If the diff is not empty, your Python or Faker version differs from the lockfile. See Troubleshooting.
+An empty diff confirms that the same seed produces the same 100 prompts in the same order. If the diff is not empty, your Python or Faker version differs from the lockfile. See Troubleshooting.
 
 ### Run the test suite
 
@@ -41,7 +41,7 @@ make test-cov
 # 23 passed, coverage ≥80% on corpus/generate.py
 ```
 
-The suite validates one hundred records, unique ids, schema conformance, the absence of known-real canary PII, JSONL parseability, and determinism under reseed.
+The suite validates 100 records, unique ids, schema conformance, the absence of known-real canary PII, JSONL parseability, and determinism under reseed.
 
 ### Sample prompts and test any AI tool
 
@@ -100,7 +100,7 @@ uv run python harness/score.py \
   --output results/results_v1.csv
 ```
 
-Output is a CSV of composite scores across five dimensions and twenty tools.
+Output is a CSV of composite scores across five dimensions and 20 tools.
 
 ### After v1.0.0 (23 July)
 
@@ -130,7 +130,7 @@ If you are cross-checking PII detection:
 
 - The semantic ground truth on each record is `expected_categories` and `expected_count`. Both are set at generation time from the template, since we know what was synthesized.
 - The `aegis_detect` field is reserved for a separate validation pipeline that lands in PR #5.
-- The open-source cross-check uses [Microsoft Presidio](https://microsoft.github.io/presidio/) on a ten percent sample. Anyone can run it.
+- The open-source cross-check uses [Microsoft Presidio](https://microsoft.github.io/presidio/) on a 10 percent sample. Anyone can run it.
 - An internal aegis-core detection is run separately and acknowledged in the paper. The public benchmark has no runtime dependency on aegis-core, on `aegispreflight.com`, or on any commercial detector.
 
 If you are evaluating commercial neutrality:

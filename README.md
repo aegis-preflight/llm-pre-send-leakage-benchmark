@@ -10,7 +10,7 @@
 
 **Status:** Work in progress. Publication: **2026-07-23** (paper + v1.0 dataset).
 
-Measures what AI tools send to their model providers. Twenty tools, one hundred synthesized prompts, five-dimension scoring rubric. Open methodology, MIT-licensed.
+Measures what AI tools send to their model providers. Tests 20 tools against 100 synthesized prompts on a 5-dimension scoring rubric. Open methodology, MIT-licensed.
 
 ---
 
@@ -18,7 +18,7 @@ Measures what AI tools send to their model providers. Twenty tools, one hundred 
 
 Users paste sensitive data into AI tools every day. The question this benchmark asks is narrow: of the data that goes in, how much reaches the model provider's servers?
 
-One hundred synthesized prompts span PII, API secrets, and PHI. Each prompt is submitted to twenty tools while outbound traffic is captured at the network layer. Tools are scored on five dimensions: pre-send redaction, user notification, transit encryption, vendor retention, and audit log accessibility. Harness, corpus, and results are MIT-licensed.
+A corpus of 100 synthesized prompts spans PII, API secrets, and PHI. Each prompt is submitted to 20 tools while outbound traffic is captured at the network layer. Tools are scored on five dimensions: pre-send redaction, user notification, transit encryption, vendor retention, and audit log accessibility. Harness, corpus, and results are MIT-licensed.
 
 Publication is 2026-07-23. The Status section below has the schedule.
 
@@ -63,7 +63,7 @@ The benchmark deliberately excludes the following. Each is a real concern; each 
 
 ## Tools tested
 
-20 tools across 5 categories. Per-tool list is locked at publication and visible in `paper/paper.md` from `v1.0.0` onward. Categories:
+20 tools across five categories. The per-tool list is locked at publication and visible in `paper/paper.md` from `v1.0.0` onward. Categories:
 
 - **Chatbots** — web-based conversational AI tools (free + premium tiers tested separately where behavior differs)
 - **Productivity AI** — meeting transcription, document AI, writing assistants
@@ -99,7 +99,7 @@ Full schema: [`corpus/corpus_schema.md`](corpus/corpus_schema.md)
 
 The full reproduction guide is in [`REPRODUCING.md`](REPRODUCING.md). It describes what runs against `main` today, what becomes available at each release, and how to verify the methodology.
 
-Quick verification that the corpus is byte-deterministic (about thirty seconds):
+Quick verification that the corpus is byte-deterministic (about 30 seconds):
 
 ```bash
 git clone https://github.com/aegis-preflight/llm-pre-send-leakage-benchmark.git
@@ -151,7 +151,7 @@ MIT — see [`LICENSE`](LICENSE). Free to use, reproduce, modify, and redistribu
 
 ## Acknowledgments
 
-The benchmark is hosted by Aegis Preflight. Microsoft Presidio is used as the open-source cross-check on a ten percent sample of the corpus, so the methodology and scoring rubric do not depend on any specific Aegis component. Results are reproducible with any equivalent PII detector.
+The benchmark is hosted by Aegis Preflight. Microsoft Presidio is used as the open-source cross-check on a 10 percent sample of the corpus, so the methodology and scoring rubric do not depend on any specific Aegis component. Results are reproducible with any equivalent PII detector.
 
 The paper makes no Aegis-specific claims. Measurements are of third-party AI tools.
 
