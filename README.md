@@ -109,7 +109,7 @@ make verify-corpus
 # Expected: ✓ Corpus is reproducible — byte-identical from DEFAULT_SEED=20260623
 ```
 
-The automated harness ships around 7 July, scoring around 11 July, and per-tool results in stages after that. The full methodology lands in `paper/paper.md` at the `v1.0.0` tag.
+The automated harness ships around 15 July, scoring around 18 July, and per-tool results in stages after that. The full methodology lands in `paper/paper.md` at the `v1.0.0` tag.
 
 ---
 
