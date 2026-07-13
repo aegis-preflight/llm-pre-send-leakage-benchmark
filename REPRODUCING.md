@@ -4,14 +4,16 @@ This guide describes what is reproducible against the current `main` branch and 
 
 ## Status at a glance
 
+> **Timeline update 2026-07-13:** the harness, web-protocol, and scoring dates below were revised from the initial estimates. Corpus and tests remain on `main` today. Harness lands around 15 July, web-protocol around 17 July, scoring around 18 July. Publication (`v1.0.0` tag) remains 23 July.
+
 | Capability | Available | Lands in |
 |---|---|---|
 | Reproduce the locked corpus byte-for-byte | Today | PR #2, merged |
 | Run the test suite (23 contract tests) | Today | PR #2, merged |
 | Sample prompts and test any AI tool manually | Today | PR #2, merged |
-| Automated harness for API-direct tools | About 7 July | PR #3, #4 |
-| Manual web-tool capture protocol (mitmproxy) | About 9 July | PR #4 |
-| 5-dimension scoring applied to results | About 11 July | PR #5 |
+| Automated harness for API-direct tools | About 15 July | PR #3, #4 |
+| Manual web-tool capture protocol (mitmproxy) | About 17 July | PR #4 |
+| 5-dimension scoring applied to results | About 18 July | PR #5 |
 | Paper site with interactive results | About 22 July | PR #6.5 |
 | One-command full replication (`make replicate`) | 23 July | v1.0.0 tag |
 
@@ -73,7 +75,7 @@ This is a manual, single-tool version of what PRs #3 through #5 automate.
 
 ## What becomes available at each release
 
-### After PR #3 (around 7 July)
+### After PR #3 (around 15 July)
 
 The first API harness will be at `harness/api/anthropic.py`. Usage:
 
@@ -86,11 +88,11 @@ uv run python harness/api/anthropic.py \
 
 It captures the JSON payload that goes to the Anthropic API, the full response, what the canonical detector finds in the outbound traffic, and whether the prompt was sent verbatim or scrubbed.
 
-### After PR #4 (around 9 July)
+### After PR #4 (around 17 July)
 
 OpenAI, Bedrock, and Azure OpenAI harnesses ship alongside `harness/web/README.md`, the manual mitmproxy capture protocol for web-only tools (ChatGPT, Claude.ai, Gemini, Perplexity, Notion AI, and the rest).
 
-### After PR #5 (around 11 July)
+### After PR #5 (around 18 July)
 
 The scorer applies the 5-dimension rubric:
 
@@ -152,7 +154,7 @@ Install `uv` from https://docs.astral.sh/uv/getting-started/installation/. The c
 Your Python or Faker version differs from what locked the corpus. The lockfile pins Python 3.11 and the exact Faker version. Run `make dev-install` to install the pinned versions, then retry.
 
 **`harness/api/anthropic.py: No such file or directory`**
-That file lands in PR #3 around 7 July. Until then, use the manual sampling workflow above. The status table at the top of this document shows when each artifact ships.
+That file lands in PR #3 around 15 July. Until then, use the manual sampling workflow above. The status table at the top of this document shows when each artifact ships.
 
 **Non-US SSN format in a record**
 Should not happen at `DEFAULT_SEED=20260623`. Both the identifiers and mixed generators pin to `fake["en_US"]` for SSN. If you see a non-US format, open an issue with the offending record id.
