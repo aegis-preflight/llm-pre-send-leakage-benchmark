@@ -18,12 +18,12 @@ Usage
 
     # Real run against Anthropic.
     export ANTHROPIC_API_KEY=sk-ant-...
-    uv run python harness/api/anthropic.py \\
+    uv run python -m harness.api.anthropic \\
         --corpus corpus/corpus_v1.jsonl \\
         --output results/raw/anthropic.json
 
     # Offline smoke test (no API key needed, no network).
-    uv run python harness/api/anthropic.py \\
+    uv run python -m harness.api.anthropic \\
         --corpus corpus/corpus_v1.jsonl \\
         --output /tmp/anthropic-dryrun.json \\
         --dry-run --limit 3

@@ -15,12 +15,12 @@ Usage
 
     # Real run against OpenAI.
     export OPENAI_API_KEY=sk-...
-    uv run python harness/api/openai.py \\
+    uv run python -m harness.api.openai \\
         --corpus corpus/corpus_v1.jsonl \\
         --output results/raw/openai.json
 
     # Offline smoke test (no API key needed).
-    uv run python harness/api/openai.py \\
+    uv run python -m harness.api.openai \\
         --corpus corpus/corpus_v1.jsonl \\
         --output /tmp/openai-dryrun.json \\
         --dry-run --limit 3

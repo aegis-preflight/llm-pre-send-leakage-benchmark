@@ -84,7 +84,7 @@ clean:  ## Remove build artifacts and caches.
 	find . -type d -name __pycache__ -prune -exec rm -rf {} \;
 
 harness-anthropic-dry:  ## Dry-run the Anthropic harness against the full corpus (no API calls).
-	$(UV) run python harness/api/anthropic.py \
+	$(UV) run python -m harness.api.anthropic \
 		--corpus corpus/corpus_v1.jsonl \
 		--output results/raw/anthropic.dryrun.json \
 		--dry-run
@@ -93,12 +93,12 @@ harness-anthropic:  ## Run the Anthropic harness live. Requires ANTHROPIC_API_KE
 	@if [ -z "$$ANTHROPIC_API_KEY" ]; then \
 		echo "ANTHROPIC_API_KEY is not set. Aborting."; exit 1; \
 	fi
-	$(UV) run python harness/api/anthropic.py \
+	$(UV) run python -m harness.api.anthropic \
 		--corpus corpus/corpus_v1.jsonl \
 		--output results/raw/anthropic.json
 
 harness-openai-dry:  ## Dry-run the OpenAI harness against the full corpus.
-	$(UV) run python harness/api/openai.py \
+	$(UV) run python -m harness.api.openai \
 		--corpus corpus/corpus_v1.jsonl \
 		--output results/raw/openai.dryrun.json \
 		--dry-run
@@ -107,12 +107,12 @@ harness-openai:  ## Run the OpenAI harness live. Requires OPENAI_API_KEY.
 	@if [ -z "$$OPENAI_API_KEY" ]; then \
 		echo "OPENAI_API_KEY is not set. Aborting."; exit 1; \
 	fi
-	$(UV) run python harness/api/openai.py \
+	$(UV) run python -m harness.api.openai \
 		--corpus corpus/corpus_v1.jsonl \
 		--output results/raw/openai.json
 
 harness-bedrock-dry:  ## Dry-run the Bedrock harness against the full corpus.
-	$(UV) run python harness/api/bedrock.py \
+	$(UV) run python -m harness.api.bedrock \
 		--corpus corpus/corpus_v1.jsonl \
 		--output results/raw/bedrock.dryrun.json \
 		--dry-run
@@ -121,13 +121,13 @@ harness-bedrock:  ## Run the Bedrock harness live. Requires AWS creds + AWS_REGI
 	@if [ -z "$$AWS_REGION$$AWS_DEFAULT_REGION" ]; then \
 		echo "AWS_REGION (or AWS_DEFAULT_REGION) is not set. Aborting."; exit 1; \
 	fi
-	$(UV) run python harness/api/bedrock.py \
+	$(UV) run python -m harness.api.bedrock \
 		--corpus corpus/corpus_v1.jsonl \
 		--output results/raw/bedrock.json
 
 harness-azure-dry:  ## Dry-run the Azure OpenAI harness. Needs --model or AZURE_OPENAI_DEPLOYMENT.
 	@DEPLOYMENT="$${AZURE_OPENAI_DEPLOYMENT:-placeholder-deployment}"; \
-	$(UV) run python harness/api/azure_openai.py \
+	$(UV) run python -m harness.api.azure_openai \
 		--corpus corpus/corpus_v1.jsonl \
 		--output results/raw/azure_openai.dryrun.json \
 		--model "$$DEPLOYMENT" \
@@ -139,7 +139,7 @@ harness-azure:  ## Run the Azure OpenAI harness live. Requires AZURE_OPENAI_* en
 			echo "$$v is not set. Aborting."; exit 1; \
 		fi; \
 	done
-	$(UV) run python harness/api/azure_openai.py \
+	$(UV) run python -m harness.api.azure_openai \
 		--corpus corpus/corpus_v1.jsonl \
 		--output results/raw/azure_openai.json
 
@@ -151,7 +151,7 @@ harness-all-dry:  ## Dry-run every API harness. Fast smoke test with no API cost
 	@echo "✓ All API harnesses produced dry-run output."
 
 score:  ## Score captured results and emit results/results_v1.csv.
-	$(UV) run python harness/score.py \
+	$(UV) run python -m harness.score \
 		--raw-dir results/raw \
 		--output results/results_v1.csv
 
@@ -166,7 +166,7 @@ score-dry:  ## Score using dry-run captures — for scoring-pipeline smoke tests
 	done; \
 	trap 'for f in results/raw/*.json.tmp-liverename; do [ -f "$$f" ] && mv "$$f" "$${f%.json.tmp-liverename}.dryrun.json"; done' EXIT; \
 	echo "(expected to fail — scorer must reject dry-run captures)"; \
-	$(UV) run python harness/score.py --raw-dir results/raw --output /tmp/score-dry.csv || echo "✓ scorer correctly rejected dry-run captures."
+	$(UV) run python -m harness.score --raw-dir results/raw --output /tmp/score-dry.csv || echo "✓ scorer correctly rejected dry-run captures."
 
 replicate:  ## Run every API harness live and score. Requires all vendor credentials.
 	@echo "=== 1/5 anthropic ==="
