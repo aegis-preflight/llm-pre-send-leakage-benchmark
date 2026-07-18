@@ -9,7 +9,7 @@ SHELL := /bin/bash
 
 UV ?= uv
 
-.PHONY: help install dev-install hooks lint format format-check type-check security secret-scan test test-cov verify-corpus ci-precheck clean
+.PHONY: help install dev-install hooks lint format format-check type-check security secret-scan test test-cov verify-corpus ci-precheck clean harness-anthropic-dry harness-anthropic
 
 help:  ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -82,3 +82,17 @@ clean:  ## Remove build artifacts and caches.
 	rm -rf build dist *.egg-info htmlcov coverage.xml .coverage \
 		.pytest_cache .mypy_cache .ruff_cache
 	find . -type d -name __pycache__ -prune -exec rm -rf {} \;
+
+harness-anthropic-dry:  ## Dry-run the Anthropic harness against the full corpus (no API calls).
+	$(UV) run python harness/api/anthropic.py \
+		--corpus corpus/corpus_v1.jsonl \
+		--output results/raw/anthropic.dryrun.json \
+		--dry-run
+
+harness-anthropic:  ## Run the Anthropic harness live. Requires ANTHROPIC_API_KEY.
+	@if [ -z "$$ANTHROPIC_API_KEY" ]; then \
+		echo "ANTHROPIC_API_KEY is not set. Aborting."; exit 1; \
+	fi
+	$(UV) run python harness/api/anthropic.py \
+		--corpus corpus/corpus_v1.jsonl \
+		--output results/raw/anthropic.json
