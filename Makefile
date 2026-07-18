@@ -9,7 +9,7 @@ SHELL := /bin/bash
 
 UV ?= uv
 
-.PHONY: help install dev-install hooks lint format format-check type-check security secret-scan test test-cov verify-corpus ci-precheck clean harness-anthropic-dry harness-anthropic harness-openai-dry harness-openai harness-bedrock-dry harness-bedrock harness-azure-dry harness-azure harness-all-dry
+.PHONY: help install dev-install hooks lint format format-check type-check security secret-scan test test-cov verify-corpus ci-precheck clean harness-anthropic-dry harness-anthropic harness-openai-dry harness-openai harness-bedrock-dry harness-bedrock harness-azure-dry harness-azure harness-all-dry score score-dry replicate
 
 help:  ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -149,3 +149,35 @@ harness-all-dry:  ## Dry-run every API harness. Fast smoke test with no API cost
 	@$(MAKE) -s harness-bedrock-dry
 	@$(MAKE) -s harness-azure-dry
 	@echo "✓ All API harnesses produced dry-run output."
+
+score:  ## Score captured results and emit results/results_v1.csv.
+	$(UV) run python harness/score.py \
+		--raw-dir results/raw \
+		--output results/results_v1.csv
+
+score-dry:  ## Score using dry-run captures — for scoring-pipeline smoke tests only.
+	@# Temporarily rename .dryrun.json → .json so discover_captures picks them
+	@# up as if they were live captures; restore afterwards. The scorer will
+	@# refuse to score them because they carry dry_run=True — this target
+	@# exists to verify that guard fires end-to-end.
+	@set -e; \
+	for f in results/raw/*.dryrun.json; do \
+		[ -f "$$f" ] && mv "$$f" "$${f%.dryrun.json}.json.tmp-liverename"; \
+	done; \
+	trap 'for f in results/raw/*.json.tmp-liverename; do [ -f "$$f" ] && mv "$$f" "$${f%.json.tmp-liverename}.dryrun.json"; done' EXIT; \
+	echo "(expected to fail — scorer must reject dry-run captures)"; \
+	$(UV) run python harness/score.py --raw-dir results/raw --output /tmp/score-dry.csv || echo "✓ scorer correctly rejected dry-run captures."
+
+replicate:  ## Run every API harness live and score. Requires all vendor credentials.
+	@echo "=== 1/5 anthropic ==="
+	@$(MAKE) -s harness-anthropic
+	@echo "=== 2/5 openai ==="
+	@$(MAKE) -s harness-openai
+	@echo "=== 3/5 bedrock ==="
+	@$(MAKE) -s harness-bedrock
+	@echo "=== 4/5 azure_openai ==="
+	@$(MAKE) -s harness-azure
+	@echo "=== 5/5 score ==="
+	@$(MAKE) -s score
+	@echo ""
+	@echo "✓ Replication complete. Scored results at results/results_v1.csv."
