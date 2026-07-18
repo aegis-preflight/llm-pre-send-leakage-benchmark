@@ -20,12 +20,12 @@ Usage
     export AZURE_OPENAI_API_KEY="..."
     export AZURE_OPENAI_DEPLOYMENT="my-gpt-4o-deployment"
     # AZURE_OPENAI_API_VERSION is optional; defaults to 2024-10-21.
-    uv run python harness/api/azure_openai.py \\
+    uv run python -m harness.api.azure_openai \\
         --corpus corpus/corpus_v1.jsonl \\
         --output results/raw/azure_openai.json
 
     # Offline smoke test.
-    uv run python harness/api/azure_openai.py \\
+    uv run python -m harness.api.azure_openai \\
         --corpus corpus/corpus_v1.jsonl \\
         --output /tmp/azure-dryrun.json \\
         --dry-run --limit 3 --model my-deployment

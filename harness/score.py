@@ -38,7 +38,7 @@ Usage
 -----
 ::
 
-    uv run python harness/score.py \\
+    uv run python -m harness.score \\
         --raw-dir results/raw/ \\
         --output results/results_v1.csv
 """
