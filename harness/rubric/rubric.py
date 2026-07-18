@@ -34,6 +34,16 @@ BAND_MINIMAL: Final[str] = "Minimal"
 BAND_MODERATE: Final[str] = "Moderate"
 BAND_STRONG: Final[str] = "Strong"
 
+# Verification statuses per tool. The rubric TOML must set one per entry
+# so the paper reviewer can distinguish grounded scores from placeholder
+# guesses at review time.
+VERIFICATION_VERIFIED: Final[str] = "verified"
+VERIFICATION_PARTIAL: Final[str] = "partial"
+VERIFICATION_UNVERIFIED: Final[str] = "unverified"
+_VALID_VERIFICATIONS: Final[frozenset[str]] = frozenset(
+    {VERIFICATION_VERIFIED, VERIFICATION_PARTIAL, VERIFICATION_UNVERIFIED}
+)
+
 
 @dataclass(frozen=True)
 class RubricEntry:
@@ -54,6 +64,11 @@ class RubricEntry:
         references: URL / citation per dimension. Keys ``d2`` / ``d3``
             / ``d4`` / ``d5``; kept as free-form strings so the paper
             can cite non-URL sources (empty for n/a).
+        verification: ``verified`` | ``partial`` | ``unverified``.
+            Signals to the paper reviewer how much of the row's cited
+            claims were machine-fetched vs. taken on faith.
+        last_verified: ISO date of the most recent WebFetch that
+            confirmed the cited claims. Empty for unverified rows.
     """
 
     tool: str
@@ -65,9 +80,11 @@ class RubricEntry:
     d4_retention: int
     d5_audit: int
     references: dict[str, str] = field(default_factory=dict)
+    verification: str = VERIFICATION_UNVERIFIED
+    last_verified: str = ""
 
     def __post_init__(self) -> None:
-        """Reject any dimension outside [0, 2]. Rubric is source of truth."""
+        """Validate dimension bounds + verification status."""
         for name, value in (
             ("d2_notification", self.d2_notification),
             ("d3_encryption", self.d3_encryption),
@@ -80,6 +97,12 @@ class RubricEntry:
                     f"[{DIMENSION_MIN}, {DIMENSION_MAX}]"
                 )
                 raise ValueError(msg)
+        if self.verification not in _VALID_VERIFICATIONS:
+            msg = (
+                f"{self.tool}.verification={self.verification!r} must be one of "
+                f"{sorted(_VALID_VERIFICATIONS)}"
+            )
+            raise ValueError(msg)
 
 
 def load_rubric(path: Path) -> dict[str, RubricEntry]:
@@ -130,6 +153,8 @@ def _entry_from_dict(row: dict[str, Any]) -> RubricEntry:
         d4_retention=int(row["d4_retention"]),
         d5_audit=int(row["d5_audit"]),
         references=references,
+        verification=str(row.get("verification", VERIFICATION_UNVERIFIED)),
+        last_verified=str(row.get("last_verified", "")),
     )
 
 
