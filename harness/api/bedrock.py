@@ -21,12 +21,12 @@ Usage
 
     # Real run. AWS credentials from the environment or ~/.aws/credentials.
     export AWS_REGION=us-east-1
-    uv run python harness/api/bedrock.py \\
+    uv run python -m harness.api.bedrock \\
         --corpus corpus/corpus_v1.jsonl \\
         --output results/raw/bedrock.json
 
     # Offline smoke test.
-    uv run python harness/api/bedrock.py \\
+    uv run python -m harness.api.bedrock \\
         --corpus corpus/corpus_v1.jsonl \\
         --output /tmp/bedrock-dryrun.json \\
         --dry-run --limit 3
