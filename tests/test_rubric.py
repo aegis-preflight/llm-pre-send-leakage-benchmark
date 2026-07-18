@@ -17,6 +17,9 @@ from harness.rubric.rubric import (
     BAND_MODERATE,
     BAND_NO_PROTECTION,
     BAND_STRONG,
+    VERIFICATION_PARTIAL,
+    VERIFICATION_UNVERIFIED,
+    VERIFICATION_VERIFIED,
     RubricEntry,
     band_for_score,
     load_rubric,
@@ -114,6 +117,37 @@ def test_rubric_entry_rejects_negative_dimension() -> None:
         )
 
 
+def test_rubric_entry_rejects_invalid_verification_status() -> None:
+    with pytest.raises(ValueError, match="verification="):
+        RubricEntry(
+            tool="x",
+            display_name="X",
+            tier="t",
+            category="C",
+            d2_notification=0,
+            d3_encryption=2,
+            d4_retention=1,
+            d5_audit=0,
+            verification="probably-yes",
+        )
+
+
+def test_rubric_entry_defaults_to_unverified() -> None:
+    """Absent explicit verification, entries default to the safest value."""
+    entry = RubricEntry(
+        tool="x",
+        display_name="X",
+        tier="t",
+        category="C",
+        d2_notification=0,
+        d3_encryption=2,
+        d4_retention=1,
+        d5_audit=0,
+    )
+    assert entry.verification == VERIFICATION_UNVERIFIED
+    assert entry.last_verified == ""
+
+
 # ---------------------------------------------------------------------------
 # load_rubric — bundled TOML must load without errors
 # ---------------------------------------------------------------------------
@@ -147,6 +181,46 @@ def test_bundled_rubric_every_entry_has_references() -> None:
     for tool_id, entry in entries.items():
         for dim in ("d2", "d3", "d4", "d5"):
             assert dim in entry.references, f"{tool_id}: missing reference for {dim}"
+
+
+def test_bundled_rubric_every_entry_has_verification_status() -> None:
+    """Paper reviewer needs verification status per tool to decide what to audit."""
+    path = _repo_root() / "harness" / "rubric" / "tool_metadata.toml"
+    entries = load_rubric(path)
+    valid = {VERIFICATION_VERIFIED, VERIFICATION_PARTIAL, VERIFICATION_UNVERIFIED}
+    for tool_id, entry in entries.items():
+        assert entry.verification in valid, (
+            f"{tool_id}: invalid verification={entry.verification!r}"
+        )
+
+
+def test_verified_and_partial_entries_carry_last_verified_date() -> None:
+    """A row can't claim verification without an ISO date to back it up."""
+    path = _repo_root() / "harness" / "rubric" / "tool_metadata.toml"
+    entries = load_rubric(path)
+    for tool_id, entry in entries.items():
+        if entry.verification in (VERIFICATION_VERIFIED, VERIFICATION_PARTIAL):
+            assert entry.last_verified, (
+                f"{tool_id}: verification={entry.verification} but "
+                "last_verified is empty"
+            )
+
+
+def test_bundled_rubric_verifies_at_least_one_api_direct_tool() -> None:
+    """Guarantee at least one API-direct row is machine-verified.
+
+    Gives the paper's methodology section a concrete grounded example
+    to point to rather than treating every citation as provisional.
+    """
+    path = _repo_root() / "harness" / "rubric" / "tool_metadata.toml"
+    entries = load_rubric(path)
+    api_direct = [e for e in entries.values() if e.category == "API direct"]
+    verified = [
+        e
+        for e in api_direct
+        if e.verification in (VERIFICATION_VERIFIED, VERIFICATION_PARTIAL)
+    ]
+    assert verified, "no API-direct rubric row has been machine-verified"
 
 
 # ---------------------------------------------------------------------------

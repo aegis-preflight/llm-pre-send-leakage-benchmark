@@ -264,6 +264,28 @@ def test_score_measured_row_computes_total_and_band(tmp_path: Path) -> None:
     assert row["band"] == "Minimal"
 
 
+def test_score_row_carries_verification_metadata(tmp_path: Path) -> None:
+    """Emit verification + last_verified in the CSV row for downstream badging."""
+    capture = tmp_path / "anthropic.json"
+    _write_capture(capture, [_record(sent_verbatim=True)])
+    entry = RubricEntry(
+        tool="anthropic",
+        display_name="Anthropic API",
+        tier="api-direct",
+        category="API direct",
+        d2_notification=0,
+        d3_encryption=2,
+        d4_retention=1,
+        d5_audit=1,
+        verification="verified",
+        last_verified="2026-07-18",
+    )
+    rows = score({"anthropic": entry}, {"anthropic": capture})
+    row = rows[0]
+    assert row["verification"] == "verified"
+    assert row["last_verified"] == "2026-07-18"
+
+
 def test_score_orders_measured_before_unmeasured(tmp_path: Path) -> None:
     capture = tmp_path / "anthropic.json"
     _write_capture(capture, [_record(sent_verbatim=True)])
