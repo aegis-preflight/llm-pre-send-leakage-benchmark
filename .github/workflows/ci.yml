@@ -37,6 +37,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras --dev
 
+      - name: Install pandoc (paper build)
+        # Needed by tests/test_paper_build.py end-to-end tests. Ubuntu
+        # ships pandoc; use apt so the CI image stays hermetic.
+        run: sudo apt-get install -y pandoc
+
       - name: Lint (ruff check)
         run: uv run ruff check .
 
@@ -47,7 +52,7 @@ jobs:
         run: uv run mypy .
 
       - name: Security scan (bandit)
-        run: uv run bandit -r corpus harness -ll -c pyproject.toml
+        run: uv run bandit -r corpus harness paper -ll -c pyproject.toml
         # -ll = report only medium+ severity
 
       - name: Secret scan (gitleaks)
