@@ -1,0 +1,352 @@
+# LLM Pre-Send Leakage Benchmark — v1 rubric metadata for 20 tested tools.
+#
+# The scorer joins this file with the per-tool raw capture data to produce
+# results/results_v1.csv. Four of the five rubric dimensions live here
+# (D2 user notification, D3 transit encryption, D4 vendor retention TOS,
+# D5 audit log accessibility). The fifth, D1 pre-send redaction, is
+# computed from the capture data by harness/score.py.
+#
+# Scoring scale for every dimension: 0 (none / worst) / 1 (partial) /
+# 2 (strong / best). Composite is the sum (0–10 max) mapped to bands:
+#   0–2 No protection · 3–5 Minimal · 6–8 Moderate · 9–10 Strong.
+#
+# **The numeric values below are the v1 baseline** and will be finalized
+# in paper/paper.md alongside their citation URLs before the v1.0.0 tag.
+# The scorer treats them as canonical; disputes go through the paper's
+# revision process, not through silent edits to this file.
+#
+# Fields per tool
+# ---------------
+#   tool          Stable identifier. Matches the ``tool`` field on
+#                 HarnessResult and the ``results/raw/<tool>.json``
+#                 filename. Locked at v1.0.0 tag.
+#   display_name  Human-readable name for the CSV / paper.
+#   tier          Which product tier was tested (free / plus / pro /
+#                 api-direct / enterprise-default).
+#   category      Chatbot / Productivity / Code AI / API direct / Agentic.
+#   d2_notification, d3_encryption, d4_retention, d5_audit  Integer 0-2.
+#   references    URL per dimension citing the public source of the
+#                 score. Empty string is only used when the dimension is
+#                 not applicable (e.g. no UI ⇒ no notification).
+
+schema_version = 1
+
+# ---------------------------------------------------------------------------
+# API-direct — four vendors covered by harness/api/*.py.
+# ---------------------------------------------------------------------------
+
+[[tools]]
+tool = "anthropic"
+display_name = "Anthropic API"
+tier = "api-direct"
+category = "API direct"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 1
+[tools.references]
+d2 = "n/a — direct API has no UI"
+d3 = "https://docs.anthropic.com/en/api/getting-started (TLS 1.2+)"
+d4 = "https://www.anthropic.com/legal/commercial-terms (30-day input/output retention; no training on API data)"
+d5 = "https://console.anthropic.com/settings/logs (usage logs, not per-request payloads)"
+
+[[tools]]
+tool = "openai"
+display_name = "OpenAI API"
+tier = "api-direct"
+category = "API direct"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 1
+[tools.references]
+d2 = "n/a — direct API has no UI"
+d3 = "https://platform.openai.com/docs/guides/production-best-practices (TLS)"
+d4 = "https://openai.com/policies/api-data-usage-policies (default 30-day retention; no training)"
+d5 = "https://platform.openai.com/usage (aggregate only; per-request via ZDR contract)"
+
+[[tools]]
+tool = "bedrock"
+display_name = "AWS Bedrock (Claude)"
+tier = "api-direct"
+category = "API direct"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 2
+d5_audit = 2
+[tools.references]
+d2 = "n/a — direct API has no UI"
+d3 = "https://docs.aws.amazon.com/general/latest/gr/aws_service_ip_ranges.html (TLS-only endpoints)"
+d4 = "https://aws.amazon.com/bedrock/faqs/ (no logging by default; no training on customer data)"
+d5 = "https://docs.aws.amazon.com/bedrock/latest/userguide/model-invocation-logging.html (CloudTrail + optional invocation logs)"
+
+[[tools]]
+tool = "azure_openai"
+display_name = "Azure OpenAI"
+tier = "api-direct"
+category = "API direct"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 2
+[tools.references]
+d2 = "n/a — direct API has no UI"
+d3 = "https://learn.microsoft.com/en-us/azure/ai-services/openai/ (TLS)"
+d4 = "https://learn.microsoft.com/en-us/legal/cognitive-services/openai/data-privacy (30-day abuse-monitoring retention; abuse-monitoring opt-out available)"
+d5 = "https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/monitoring (Azure Monitor logs)"
+
+# ---------------------------------------------------------------------------
+# Chatbots — web tools captured per harness/web/README.md.
+# ---------------------------------------------------------------------------
+
+[[tools]]
+tool = "chatgpt_free"
+display_name = "ChatGPT (free)"
+tier = "chatgpt-free"
+category = "Chatbot"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 0
+d5_audit = 1
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to chatgpt.com backend."
+d4 = "https://help.openai.com/en/articles/7730893 (used to improve models unless opted out)"
+d5 = "https://chatgpt.com/#settings/DataControls (chat history export)"
+
+[[tools]]
+tool = "chatgpt_plus"
+display_name = "ChatGPT Plus"
+tier = "chatgpt-plus"
+category = "Chatbot"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 1
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to chatgpt.com backend."
+d4 = "https://help.openai.com/en/articles/7730893 (opt-out easier for paid; temporary-chat mode)"
+d5 = "https://chatgpt.com/#settings/DataControls (chat history export)"
+
+[[tools]]
+tool = "claude_ai_free"
+display_name = "Claude.ai (free)"
+tier = "claude-free"
+category = "Chatbot"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 1
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to claude.ai backend."
+d4 = "https://www.anthropic.com/legal/privacy (30-day retention; no training on conversations)"
+d5 = "https://claude.ai/settings/data-controls (conversation export)"
+
+[[tools]]
+tool = "claude_ai_pro"
+display_name = "Claude.ai (Pro)"
+tier = "claude-pro"
+category = "Chatbot"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 1
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to claude.ai backend."
+d4 = "https://www.anthropic.com/legal/privacy (30-day retention; no training)"
+d5 = "https://claude.ai/settings/data-controls (conversation export)"
+
+[[tools]]
+tool = "gemini"
+display_name = "Google Gemini"
+tier = "gemini-free"
+category = "Chatbot"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 0
+d5_audit = 1
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS with app-layer cert pinning (not mitmproxy-interceptable on stock browsers)."
+d4 = "https://support.google.com/gemini/answer/13594961 (conversations may be reviewed by humans; retention up to 3 years)"
+d5 = "https://myactivity.google.com/product/gemini (activity log)"
+
+[[tools]]
+tool = "perplexity"
+display_name = "Perplexity"
+tier = "perplexity-free"
+category = "Chatbot"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 1
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to perplexity.ai backend."
+d4 = "https://www.perplexity.ai/hub/legal/privacy-policy (retained for service improvement; AI-training opt-out in settings)"
+d5 = "Account settings show conversation history."
+
+[[tools]]
+tool = "meta_ai"
+display_name = "Meta.ai"
+tier = "meta-ai-free"
+category = "Chatbot"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 0
+d5_audit = 0
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to meta.ai backend."
+d4 = "https://www.facebook.com/privacy/genai (used to improve Meta AI models; retention indefinite)"
+d5 = "No per-conversation export at this tier as of 2026-07."
+
+[[tools]]
+tool = "mistral_le_chat"
+display_name = "Mistral Le Chat"
+tier = "lechat-free"
+category = "Chatbot"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 1
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to chat.mistral.ai backend."
+d4 = "https://mistral.ai/terms/ (may retain to improve models; opt-out in account settings)"
+d5 = "Account settings show conversation history."
+
+[[tools]]
+tool = "xai_grok"
+display_name = "xAI Grok (web)"
+tier = "grok-web"
+category = "Chatbot"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 0
+d5_audit = 1
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to grok.com backend."
+d4 = "https://x.ai/legal/privacy-policy (used for training by default; opt-out available)"
+d5 = "Chat history visible in the web UI."
+
+# ---------------------------------------------------------------------------
+# Productivity AI.
+# ---------------------------------------------------------------------------
+
+[[tools]]
+tool = "notion_ai"
+display_name = "Notion AI"
+tier = "notion-ai-workspace"
+category = "Productivity"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 1
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to notion.so backend."
+d4 = "https://www.notion.so/help/notion-ai-faqs (not used for training; retention follows workspace policy)"
+d5 = "Workspace audit log (Enterprise plan)."
+
+[[tools]]
+tool = "grammarly"
+display_name = "Grammarly (AI features)"
+tier = "grammarly-free"
+category = "Productivity"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 0
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to grammarly.com backend."
+d4 = "https://www.grammarly.com/privacy-policy (text sent to server; retained for service quality)"
+d5 = "No per-request audit log for individual users."
+
+[[tools]]
+tool = "google_ai_studio"
+display_name = "Google AI Studio"
+tier = "aistudio-free"
+category = "Productivity"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 0
+d5_audit = 1
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to ai.google.dev backend."
+d4 = "https://ai.google.dev/gemini-api/terms (free tier prompts may be used for training)"
+d5 = "Prompt history in studio UI."
+
+# ---------------------------------------------------------------------------
+# Code AI.
+# ---------------------------------------------------------------------------
+
+[[tools]]
+tool = "copilot_chat_web"
+display_name = "GitHub Copilot Chat (web)"
+tier = "copilot-individual"
+category = "Code AI"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 1
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to api.githubcopilot.com."
+d4 = "https://docs.github.com/en/copilot/managing-copilot/managing-copilot-as-an-individual-subscriber/managing-your-github-copilot-plan/managing-copilot-policies-as-an-individual-subscriber (28-day retention; training opt-out available)"
+d5 = "GitHub audit log (organization tier)."
+
+[[tools]]
+tool = "cursor_web"
+display_name = "Cursor (web)"
+tier = "cursor-pro"
+category = "Code AI"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 0
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to cursor.com backend."
+d4 = "https://www.cursor.com/privacy (Privacy Mode available; default is retained)"
+d5 = "No per-request audit log for individual users."
+
+[[tools]]
+tool = "windsurf"
+display_name = "Windsurf"
+tier = "windsurf-free"
+category = "Code AI"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 0
+[tools.references]
+d2 = "No pre-send warning observed 2026-07."
+d3 = "HTTPS to windsurf.com backend."
+d4 = "https://codeium.com/privacy-policy (opt-out from training available; retention varies by tier)"
+d5 = "No per-request audit log for individual users."
+
+# ---------------------------------------------------------------------------
+# Agentic / MCP.
+# ---------------------------------------------------------------------------
+
+[[tools]]
+tool = "mcp_tool_v1"
+display_name = "MCP client v1 (locked at v1.0.0 tag)"
+tier = "mcp-default"
+category = "Agentic"
+d2_notification = 0
+d3_encryption = 2
+d4_retention = 1
+d5_audit = 2
+[tools.references]
+d2 = "Specific client selection is locked at v1.0.0 tag; documented in paper/paper.md."
+d3 = "MCP transport is TLS or local stdio."
+d4 = "Depends on downstream server; scored assuming default configuration."
+d5 = "MCP protocol includes structured trace output at every hop."
