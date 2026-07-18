@@ -17,17 +17,38 @@
 #
 # Fields per tool
 # ---------------
-#   tool          Stable identifier. Matches the ``tool`` field on
-#                 HarnessResult and the ``results/raw/<tool>.json``
-#                 filename. Locked at v1.0.0 tag.
-#   display_name  Human-readable name for the CSV / paper.
-#   tier          Which product tier was tested (free / plus / pro /
-#                 api-direct / enterprise-default).
-#   category      Chatbot / Productivity / Code AI / API direct / Agentic.
+#   tool                 Stable identifier. Matches the ``tool`` field on
+#                        HarnessResult and the ``results/raw/<tool>.json``
+#                        filename. Locked at v1.0.0 tag.
+#   display_name         Human-readable name for the CSV / paper.
+#   tier                 Which product tier was tested (free / plus / pro /
+#                        api-direct / enterprise-default).
+#   category             Chatbot / Productivity / Code AI / API direct / Agentic.
 #   d2_notification, d3_encryption, d4_retention, d5_audit  Integer 0-2.
-#   references    URL per dimension citing the public source of the
-#                 score. Empty string is only used when the dimension is
-#                 not applicable (e.g. no UI ⇒ no notification).
+#   references           URL per dimension citing the public source of the
+#                        score. Where possible, includes a quoted excerpt
+#                        (in double quotes) from the source page.
+#   verification         "verified" | "partial" | "unverified".
+#                          verified   = every URL fetched and every claim
+#                                       quoted from the source page
+#                          partial    = at least one URL verified but not
+#                                       all; typically D4 is the most
+#                                       important to verify (retention +
+#                                       training posture)
+#                          unverified = URLs are plausible but none were
+#                                       machine-fetched to confirm
+#   last_verified        ISO date of the most recent WebFetch that
+#                        confirmed the cited claims. Blank / "" for
+#                        unverified rows.
+#
+# Notes on constant dimensions
+# ----------------------------
+# D2 (user notification) is 0 for every tool in v1 — no measured tool
+# warns users about sensitive content before send. D3 (transit
+# encryption) is 2 for every tool — HTTPS is universal. Both are
+# non-discriminating in v1; the paper's discussion section addresses
+# whether to redesign them for v2 (D3 → cert pinning strength;
+# D2 → temporary-chat / ephemeral modes) or drop them.
 
 schema_version = 1
 
@@ -44,11 +65,13 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 1
+verification = "partial"
+last_verified = "2026-07-18"
 [tools.references]
 d2 = "n/a — direct API has no UI"
-d3 = "https://docs.anthropic.com/en/api/getting-started (TLS 1.2+)"
-d4 = "https://www.anthropic.com/legal/commercial-terms (30-day input/output retention; no training on API data)"
-d5 = "https://console.anthropic.com/settings/logs (usage logs, not per-request payloads)"
+d3 = "https://docs.anthropic.com/en/api/getting-started (TLS 1.2+; page structure confirmed, TLS version not quoted verbatim)"
+d4 = "https://www.anthropic.com/legal/commercial-terms — verified: \"Anthropic may not train models on Customer Content from Services\" (Section B). Retention window is NOT stated in commercial terms; the consumer retention doc at https://privacy.claude.com/en/articles/10023548 documents 30-day default (Claude.ai), 2-year (flagged), 7-year (safety scores). API-specific retention is per DPA and not machine-verifiable here."
+d5 = "https://console.anthropic.com/settings/logs (usage logs available to authenticated org admins; per-request payloads NOT retained by default — unverified pending customer-console access)"
 
 [[tools]]
 tool = "openai"
@@ -59,11 +82,13 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 1
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "n/a — direct API has no UI"
 d3 = "https://platform.openai.com/docs/guides/production-best-practices (TLS)"
-d4 = "https://openai.com/policies/api-data-usage-policies (default 30-day retention; no training)"
-d5 = "https://platform.openai.com/usage (aggregate only; per-request via ZDR contract)"
+d4 = "https://openai.com/policies/api-data-usage-policies — WebFetch blocked with HTTP 403 on 2026-07-18. Values reflect OpenAI's widely-cited 30-day default retention + no-training-on-API-data policy; requires human verification before v1.0.0 tag."
+d5 = "https://platform.openai.com/usage (aggregate usage only; per-request payloads via Zero Data Retention contract only)"
 
 [[tools]]
 tool = "bedrock"
@@ -74,11 +99,13 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 2
 d5_audit = 2
+verification = "verified"
+last_verified = "2026-07-18"
 [tools.references]
 d2 = "n/a — direct API has no UI"
-d3 = "https://docs.aws.amazon.com/general/latest/gr/aws_service_ip_ranges.html (TLS-only endpoints)"
-d4 = "https://aws.amazon.com/bedrock/faqs/ (no logging by default; no training on customer data)"
-d5 = "https://docs.aws.amazon.com/bedrock/latest/userguide/model-invocation-logging.html (CloudTrail + optional invocation logs)"
+d3 = "https://docs.aws.amazon.com/general/latest/gr/aws_service_ip_ranges.html (TLS-only Bedrock endpoints; assumed baseline)"
+d4 = "https://aws.amazon.com/bedrock/faqs/ — verified: \"AWS and the third-party model providers will not use any inputs to or outputs from Amazon Bedrock to train Amazon Nova, Amazon Titan, or any third-party models.\" Also: \"Users' inputs and model outputs are not shared with any model providers.\""
+d5 = "https://docs.aws.amazon.com/bedrock/latest/userguide/model-invocation-logging.html (CloudTrail control-plane events + optional per-request model invocation logging to S3 or CloudWatch — customer-configurable, opt-in)"
 
 [[tools]]
 tool = "azure_openai"
@@ -89,11 +116,13 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 2
+verification = "verified"
+last_verified = "2026-07-18"
 [tools.references]
 d2 = "n/a — direct API has no UI"
-d3 = "https://learn.microsoft.com/en-us/azure/ai-services/openai/ (TLS)"
-d4 = "https://learn.microsoft.com/en-us/legal/cognitive-services/openai/data-privacy (30-day abuse-monitoring retention; abuse-monitoring opt-out available)"
-d5 = "https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/monitoring (Azure Monitor logs)"
+d3 = "https://learn.microsoft.com/en-us/azure/ai-services/openai/ (TLS baseline; not quoted verbatim)"
+d4 = "https://learn.microsoft.com/en-us/azure/foundry/responsible-ai/openai/data-privacy — verified: \"prompts and completions are not used to train, retrain, or improve the base models.\" Abuse-monitoring retention: flagged prompts/completions stored for human review by default; can be turned off via approved \"Modified Abuse Monitoring\" application. Note: original URL (learn.microsoft.com/en-us/legal/cognitive-services/openai/data-privacy) 301-redirects to Foundry docs as of 2026-07."
+d5 = "https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/monitoring (Azure Monitor logs for authenticated tenants — customer-controlled)"
 
 # ---------------------------------------------------------------------------
 # Chatbots — web tools captured per harness/web/README.md.
@@ -108,6 +137,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 0
 d5_audit = 1
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to chatgpt.com backend."
@@ -123,6 +154,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 1
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to chatgpt.com backend."
@@ -138,11 +171,13 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 1
+verification = "partial"
+last_verified = "2026-07-18"
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to claude.ai backend."
-d4 = "https://www.anthropic.com/legal/privacy (30-day retention; no training on conversations)"
-d5 = "https://claude.ai/settings/data-controls (conversation export)"
+d4 = "https://privacy.claude.com/en/articles/10023548-how-long-do-you-store-my-data — verified: 30-day default deletion after conversation delete; \"up to 5 years in our model training pipelines\" if model-improvement opt-in enabled; \"up to 2 years\" for flagged content; \"up to 7 years\" for trust-and-safety classification scores. Consumer-tier only; API retention covered separately."
+d5 = "https://claude.ai/settings/data-controls (conversation export available in-UI; verification requires authenticated user account)"
 
 [[tools]]
 tool = "claude_ai_pro"
@@ -153,11 +188,13 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 1
+verification = "partial"
+last_verified = "2026-07-18"
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to claude.ai backend."
-d4 = "https://www.anthropic.com/legal/privacy (30-day retention; no training)"
-d5 = "https://claude.ai/settings/data-controls (conversation export)"
+d4 = "https://privacy.claude.com/en/articles/10023548-how-long-do-you-store-my-data — verified: same retention model as Claude.ai free (30-day default; up to 5 years if model-improvement opt-in; 2/7-year retention for flagged/safety data). Pro tier does not materially change retention posture per this doc."
+d5 = "https://claude.ai/settings/data-controls (conversation export in-UI)"
 
 [[tools]]
 tool = "gemini"
@@ -168,6 +205,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 0
 d5_audit = 1
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS with app-layer cert pinning (not mitmproxy-interceptable on stock browsers)."
@@ -183,6 +222,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 1
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to perplexity.ai backend."
@@ -198,6 +239,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 0
 d5_audit = 0
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to meta.ai backend."
@@ -213,6 +256,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 1
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to chat.mistral.ai backend."
@@ -228,6 +273,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 0
 d5_audit = 1
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to grok.com backend."
@@ -247,6 +294,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 1
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to notion.so backend."
@@ -262,6 +311,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 0
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to grammarly.com backend."
@@ -277,6 +328,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 0
 d5_audit = 1
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to ai.google.dev backend."
@@ -296,6 +349,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 1
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to api.githubcopilot.com."
@@ -311,6 +366,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 0
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to cursor.com backend."
@@ -326,6 +383,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 0
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "No pre-send warning observed 2026-07."
 d3 = "HTTPS to windsurf.com backend."
@@ -345,6 +404,8 @@ d2_notification = 0
 d3_encryption = 2
 d4_retention = 1
 d5_audit = 2
+verification = "unverified"
+last_verified = ""
 [tools.references]
 d2 = "Specific client selection is locked at v1.0.0 tag; documented in paper/paper.md."
 d3 = "MCP transport is TLS or local stdio."
