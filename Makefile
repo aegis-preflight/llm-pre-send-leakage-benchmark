@@ -9,7 +9,7 @@ SHELL := /bin/bash
 
 UV ?= uv
 
-.PHONY: help install dev-install hooks lint format format-check type-check security secret-scan test test-cov verify-corpus ci-precheck clean harness-anthropic-dry harness-anthropic
+.PHONY: help install dev-install hooks lint format format-check type-check security secret-scan test test-cov verify-corpus ci-precheck clean harness-anthropic-dry harness-anthropic harness-openai-dry harness-openai harness-bedrock-dry harness-bedrock harness-azure-dry harness-azure harness-all-dry
 
 help:  ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -96,3 +96,56 @@ harness-anthropic:  ## Run the Anthropic harness live. Requires ANTHROPIC_API_KE
 	$(UV) run python harness/api/anthropic.py \
 		--corpus corpus/corpus_v1.jsonl \
 		--output results/raw/anthropic.json
+
+harness-openai-dry:  ## Dry-run the OpenAI harness against the full corpus.
+	$(UV) run python harness/api/openai.py \
+		--corpus corpus/corpus_v1.jsonl \
+		--output results/raw/openai.dryrun.json \
+		--dry-run
+
+harness-openai:  ## Run the OpenAI harness live. Requires OPENAI_API_KEY.
+	@if [ -z "$$OPENAI_API_KEY" ]; then \
+		echo "OPENAI_API_KEY is not set. Aborting."; exit 1; \
+	fi
+	$(UV) run python harness/api/openai.py \
+		--corpus corpus/corpus_v1.jsonl \
+		--output results/raw/openai.json
+
+harness-bedrock-dry:  ## Dry-run the Bedrock harness against the full corpus.
+	$(UV) run python harness/api/bedrock.py \
+		--corpus corpus/corpus_v1.jsonl \
+		--output results/raw/bedrock.dryrun.json \
+		--dry-run
+
+harness-bedrock:  ## Run the Bedrock harness live. Requires AWS creds + AWS_REGION.
+	@if [ -z "$$AWS_REGION$$AWS_DEFAULT_REGION" ]; then \
+		echo "AWS_REGION (or AWS_DEFAULT_REGION) is not set. Aborting."; exit 1; \
+	fi
+	$(UV) run python harness/api/bedrock.py \
+		--corpus corpus/corpus_v1.jsonl \
+		--output results/raw/bedrock.json
+
+harness-azure-dry:  ## Dry-run the Azure OpenAI harness. Needs --model or AZURE_OPENAI_DEPLOYMENT.
+	@DEPLOYMENT="$${AZURE_OPENAI_DEPLOYMENT:-placeholder-deployment}"; \
+	$(UV) run python harness/api/azure_openai.py \
+		--corpus corpus/corpus_v1.jsonl \
+		--output results/raw/azure_openai.dryrun.json \
+		--model "$$DEPLOYMENT" \
+		--dry-run
+
+harness-azure:  ## Run the Azure OpenAI harness live. Requires AZURE_OPENAI_* env vars.
+	@for v in AZURE_OPENAI_API_KEY AZURE_OPENAI_ENDPOINT AZURE_OPENAI_DEPLOYMENT; do \
+		if [ -z "$${!v}" ]; then \
+			echo "$$v is not set. Aborting."; exit 1; \
+		fi; \
+	done
+	$(UV) run python harness/api/azure_openai.py \
+		--corpus corpus/corpus_v1.jsonl \
+		--output results/raw/azure_openai.json
+
+harness-all-dry:  ## Dry-run every API harness. Fast smoke test with no API cost.
+	@$(MAKE) -s harness-anthropic-dry
+	@$(MAKE) -s harness-openai-dry
+	@$(MAKE) -s harness-bedrock-dry
+	@$(MAKE) -s harness-azure-dry
+	@echo "✓ All API harnesses produced dry-run output."
