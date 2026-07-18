@@ -4,18 +4,19 @@ This guide describes what is reproducible against the current `main` branch and 
 
 ## Status at a glance
 
-> **Timeline update 2026-07-13:** the harness, web-protocol, and scoring dates below were revised from the initial estimates. Corpus and tests remain on `main` today. Harness lands around 15 July, web-protocol around 17 July, scoring around 18 July. Publication (`v1.0.0` tag) remains 23 July.
+> **Timeline update 2026-07-18:** the API harness, web-protocol, scoring, and one-command replication all landed today — five days ahead of the original 23 July target. Only the paper site and the v1.0.0 tag remain.
 
 | Capability | Available | Lands in |
 |---|---|---|
 | Reproduce the locked corpus byte-for-byte | Today | PR #2, merged |
 | Run the test suite (23 contract tests) | Today | PR #2, merged |
 | Sample prompts and test any AI tool manually | Today | PR #2, merged |
-| Automated harness for API-direct tools | About 15 July | PR #3, #4 |
-| Manual web-tool capture protocol (mitmproxy) | About 17 July | PR #4 |
-| 5-dimension scoring applied to results | About 18 July | PR #5 |
+| Automated harness for API-direct tools (Anthropic, OpenAI, Bedrock, Azure OpenAI) | Today | PR #12, #13, merged |
+| Manual web-tool capture protocol (mitmproxy) | Today | PR #13, merged |
+| 5-dimension scoring applied to results | Today | PR #14, merged |
+| One-command full replication (`make replicate`) | Today | PR #14, merged |
 | Paper site with interactive results | About 22 July | PR #6.5 |
-| One-command full replication (`make replicate`) | 23 July | v1.0.0 tag |
+| `v1.0.0` tag (corpus + rubric + results CSV frozen) | 23 July | v1.0.0 tag |
 
 ## What the benchmark measures
 
@@ -71,48 +72,56 @@ Two things are worth recording from each test:
 1. Did the tool redact or warn the user before sending the prompt? Inspect the network tab or use mitmproxy.
 2. Did the tool's response echo any PII back?
 
-This is a manual, single-tool version of what PRs #3 through #5 automate.
+This is a manual, single-tool version of what the four API harnesses now automate.
 
-## What becomes available at each release
+## Running the API harnesses
 
-### After PR #3 (around 15 July)
+Every API harness ships now on `main` (see the status table above). Each is a `python -m` invocation with the same CLI shape.
 
-The first API harness will be at `harness/api/anthropic.py`. Usage:
+### Anthropic
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-uv run python harness/api/anthropic.py \
+uv run python -m harness.api.anthropic \
   --corpus corpus/corpus_v1.jsonl \
   --output results/raw/anthropic.json
 ```
 
-It captures the JSON payload that goes to the Anthropic API, the full response, what the canonical detector finds in the outbound traffic, and whether the prompt was sent verbatim or scrubbed.
+Captures the JSON payload sent to Anthropic Messages, the response, what the canonical detector finds in the outbound traffic, and whether the prompt was sent verbatim or scrubbed.
 
-### After PR #4 (around 17 July)
-
-OpenAI, Bedrock, and Azure OpenAI harnesses ship alongside `harness/web/README.md`, the manual mitmproxy capture protocol for web-only tools (ChatGPT, Claude.ai, Gemini, Perplexity, Notion AI, and the rest).
-
-### After PR #5 (around 18 July)
-
-The scorer applies the 5-dimension rubric:
+### OpenAI, Bedrock, Azure OpenAI
 
 ```bash
-uv run python harness/score.py \
+uv run python -m harness.api.openai      --corpus corpus/corpus_v1.jsonl --output results/raw/openai.json
+uv run python -m harness.api.bedrock     --corpus corpus/corpus_v1.jsonl --output results/raw/bedrock.json
+uv run python -m harness.api.azure_openai --corpus corpus/corpus_v1.jsonl --output results/raw/azure_openai.json --model <deployment>
+```
+
+Credentials per vendor: `OPENAI_API_KEY`; `AWS_REGION` (plus the standard AWS credential chain) for Bedrock; `AZURE_OPENAI_API_KEY` + `AZURE_OPENAI_ENDPOINT` (+ optional `AZURE_OPENAI_DEPLOYMENT`) for Azure.
+
+### Web tools
+
+Manual, per `harness/web/README.md`. mitmproxy-based capture protocol for ChatGPT, Claude.ai, Gemini, Perplexity, Notion AI, and the rest. HAR export per prompt; sanitized `manifest.json` per tool committed to `results/raw/web/<tool>/`.
+
+## Scoring
+
+```bash
+uv run python -m harness.score \
   --raw-dir results/raw/ \
   --output results/results_v1.csv
 ```
 
-Output is a CSV of composite scores across five dimensions and 20 tools.
+Composite scores across the five dimensions for all 20 tools in the rubric. Tools without capture data yet emit unmeasured rows so gaps are visible.
 
-### After v1.0.0 (23 July)
-
-A single command runs the full benchmark end to end:
+## One-command replication
 
 ```bash
 export ANTHROPIC_API_KEY=...
 export OPENAI_API_KEY=...
-export AWS_ACCESS_KEY_ID=...      # for Bedrock
+export AWS_REGION=us-east-1        # + standard AWS credential chain for Bedrock
 export AZURE_OPENAI_API_KEY=...
+export AZURE_OPENAI_ENDPOINT=...
+export AZURE_OPENAI_DEPLOYMENT=... # your deployment name
 
 make replicate
 ```
@@ -131,14 +140,14 @@ If you are checking whether the corpus is well-formed:
 If you are cross-checking PII detection:
 
 - The semantic ground truth on each record is `expected_categories` and `expected_count`. Both are set at generation time from the template, since we know what was synthesized.
-- The `aegis_detect` field is reserved for a separate validation pipeline that lands in PR #5.
+- The `aegis_detect` field is reserved for a follow-on validation pipeline that will replay the ground-truth detector against every corpus record; it stays empty at v1 generation time.
 - The open-source cross-check uses [Microsoft Presidio](https://microsoft.github.io/presidio/) on a 10 percent sample. Anyone can run it.
 - An internal aegis-core detection is run separately and acknowledged in the paper. The public benchmark has no runtime dependency on aegis-core, on `aegispreflight.com`, or on any commercial detector.
 
 If you are evaluating commercial neutrality:
 
 - License: MIT
-- Runtime dependencies: `faker` for corpus generation. Provider SDKs are added in PR #3.
+- Runtime dependencies: `faker` for corpus generation. Provider SDKs (`anthropic`, `openai`, `boto3`) install under harness extras and are only imported at live-run time; dry-run needs none of them.
 - No commercial detector is imported, called, or recommended.
 - Aegis Preflight is named in the README as the host. The paper makes no Aegis-specific claims.
 
@@ -153,8 +162,8 @@ Install `uv` from https://docs.astral.sh/uv/getting-started/installation/. The c
 **`make verify-corpus` shows a non-empty diff**
 Your Python or Faker version differs from what locked the corpus. The lockfile pins Python 3.11 and the exact Faker version. Run `make dev-install` to install the pinned versions, then retry.
 
-**`harness/api/anthropic.py: No such file or directory`**
-That file lands in PR #3 around 15 July. Until then, use the manual sampling workflow above. The status table at the top of this document shows when each artifact ships.
+**`ModuleNotFoundError: No module named 'openai.OpenAI'` or `AttributeError: module 'openai' has no attribute 'OpenAI'`**
+You invoked the harness as a script (`python harness/api/openai.py`) instead of as a module (`python -m harness.api.openai`). Script mode puts `harness/api/` at the front of `sys.path`, which shadows the SDK. Always use `python -m harness.api.<vendor>` (or the `make harness-<vendor>` targets).
 
 **Non-US SSN format in a record**
 Should not happen at `DEFAULT_SEED=20260623`. Both the identifiers and mixed generators pin to `fake["en_US"]` for SSN. If you see a non-US format, open an issue with the offending record id.
