@@ -31,6 +31,11 @@ results/raw/*.partial
 # results/raw/<tool>.json once the v1.0.0 tag ships.
 results/raw/*.dryrun.json
 
+# Generated paper artifacts — regenerated on demand via `make paper`.
+# The v1.0.0 tag publishes final paper.html + paper.pdf as release assets.
+paper/paper.html
+paper/paper.pdf
+
 # OS
 .DS_Store
 Thumbs.db

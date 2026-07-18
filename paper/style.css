@@ -1,0 +1,270 @@
+/* LLM Pre-Send Leakage Benchmark — paper style.
+ *
+ * One stylesheet drives both HTML and PDF (via weasyprint). Keep it small.
+ * Guiding principles:
+ *   - Legibility beats decoration. Body text is the artifact.
+ *   - Print-safe: no dependencies on JS, web fonts, or external CDNs.
+ *   - Data-forward: tables and code blocks read clearly.
+ *   - [TODO: ...] markers rendered as visible callouts so reviewers
+ *     cannot miss unfinished sections.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Page setup                                                                 */
+/* -------------------------------------------------------------------------- */
+
+@page {
+  size: Letter;
+  margin: 1in 0.9in 1in 0.9in;
+  @bottom-center {
+    content: counter(page) " of " counter(pages);
+    font-family: "Charter", "Georgia", serif;
+    font-size: 9pt;
+    color: #666;
+  }
+  @top-right {
+    content: "LLM Pre-Send Leakage Benchmark v1.0 — DRAFT";
+    font-family: "Charter", "Georgia", serif;
+    font-size: 9pt;
+    color: #999;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Typography                                                                 */
+/* -------------------------------------------------------------------------- */
+
+html {
+  font-family: "Charter", "Georgia", "Times New Roman", serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #222;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 2em 1em 4em 1em;
+}
+
+body {
+  hyphens: auto;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Inter", "Helvetica Neue", "Arial", sans-serif;
+  font-weight: 600;
+  color: #111;
+  line-height: 1.25;
+  margin-top: 1.6em;
+  margin-bottom: 0.4em;
+  page-break-after: avoid;
+}
+
+h1 { font-size: 22pt; margin-top: 0; page-break-before: avoid; }
+h2 { font-size: 16pt; border-bottom: 2px solid #eee; padding-bottom: 0.2em; }
+h3 { font-size: 13pt; }
+h4 { font-size: 11pt; font-style: italic; color: #444; }
+
+p {
+  margin: 0.6em 0;
+  text-align: justify;
+}
+
+blockquote {
+  border-left: 3px solid #d0d0d0;
+  padding: 0.4em 1em;
+  margin: 1em 0;
+  color: #444;
+  background: #fafafa;
+  font-style: italic;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Links + code                                                               */
+/* -------------------------------------------------------------------------- */
+
+a {
+  color: #0645ad;
+  text-decoration: none;
+  word-wrap: break-word;
+}
+a:hover { text-decoration: underline; }
+
+code, pre, kbd, samp {
+  font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
+  font-size: 9.5pt;
+}
+
+code {
+  background: #f4f4f4;
+  padding: 0.05em 0.35em;
+  border-radius: 3px;
+  color: #a01;
+}
+
+pre {
+  background: #f7f7f7;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  padding: 0.7em 0.9em;
+  overflow-x: auto;
+  page-break-inside: avoid;
+}
+pre code {
+  background: none;
+  padding: 0;
+  color: #222;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tables — the paper's primary data-carrying element                          */
+/* -------------------------------------------------------------------------- */
+
+table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+  font-size: 10pt;
+  page-break-inside: avoid;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 0.4em 0.6em;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #f0f0f0;
+  font-family: "Inter", "Helvetica Neue", sans-serif;
+  font-weight: 600;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+tr:nth-child(even) td { background: #fafafa; }
+
+/* -------------------------------------------------------------------------- */
+/* [TODO: ...] markers — bright so no reviewer misses them                    */
+/* -------------------------------------------------------------------------- */
+
+/* Pandoc renders inline `[TODO: ...]` as plain text. This selector picks up
+ * the literal string inside <p> or <li> and highlights it via a mixin at the
+ * paragraph level. Weasyprint does not support :has() reliably, so we
+ * pre-process paper.md to wrap TODO paragraphs with a class in a build step;
+ * as a fallback, any element with class .todo also gets styled here. */
+
+.todo,
+p.todo,
+li.todo {
+  background: #fff8c5;
+  border-left: 4px solid #f5c518;
+  padding: 0.5em 0.8em;
+  margin: 0.7em 0;
+  page-break-inside: avoid;
+}
+
+.todo > span,
+p.todo > span {
+  color: #7a5b00;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Inline TODO — appears inside prose, list items, headings. Same yellow
+ * highlight but sits within the flow of text, not as a full callout. */
+code.todo-inline {
+  background: #fff8c5;
+  color: #7a5b00;
+  border: 1px solid #f5c518;
+  padding: 0.05em 0.4em;
+  border-radius: 3px;
+  font-family: "Inter", "Helvetica Neue", sans-serif;
+  font-size: 9.5pt;
+  font-weight: 500;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Table of contents                                                          */
+/* -------------------------------------------------------------------------- */
+
+#TOC {
+  border: 1px solid #e5e5e5;
+  background: #fafafa;
+  padding: 1em 1.4em;
+  margin: 1.5em 0 2em 0;
+  border-radius: 4px;
+  page-break-inside: avoid;
+}
+
+#TOC h2 {
+  font-size: 11pt;
+  margin: 0 0 0.6em 0;
+  border: none;
+  padding: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+}
+
+#TOC ul {
+  list-style: none;
+  padding-left: 1em;
+  margin: 0;
+}
+
+#TOC > ul { padding-left: 0; }
+
+#TOC li {
+  margin: 0.15em 0;
+  font-size: 10pt;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Title block (Pandoc's YAML metadata)                                       */
+/* -------------------------------------------------------------------------- */
+
+.title, header .title, h1.title {
+  font-size: 24pt;
+  margin-bottom: 0.2em;
+  line-height: 1.2;
+}
+
+.subtitle, header .subtitle {
+  font-size: 13pt;
+  color: #555;
+  font-weight: 400;
+  margin-bottom: 1.5em;
+}
+
+.author {
+  font-family: "Inter", "Helvetica Neue", sans-serif;
+  color: #444;
+  margin-bottom: 0.3em;
+}
+
+.date {
+  color: #666;
+  font-size: 10pt;
+  margin-bottom: 2em;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Print-only refinements                                                     */
+/* -------------------------------------------------------------------------- */
+
+@media print {
+  html { padding: 0; max-width: none; }
+  a { color: #222; text-decoration: underline; }
+  /* Show URLs inline for print so the PDF is self-contained. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 8pt;
+    color: #666;
+    word-break: break-all;
+  }
+  /* Except inside the TOC — that would double-print every heading. */
+  #TOC a::after { content: none; }
+  pre { page-break-inside: avoid; }
+  h2, h3 { page-break-after: avoid; }
+}
