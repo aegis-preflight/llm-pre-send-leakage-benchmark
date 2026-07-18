@@ -9,7 +9,7 @@ SHELL := /bin/bash
 
 UV ?= uv
 
-.PHONY: help install dev-install hooks lint format format-check type-check security secret-scan test test-cov verify-corpus ci-precheck clean harness-anthropic-dry harness-anthropic harness-openai-dry harness-openai harness-bedrock-dry harness-bedrock harness-azure-dry harness-azure harness-all-dry score score-dry replicate
+.PHONY: help install dev-install hooks lint format format-check type-check security secret-scan test test-cov verify-corpus ci-precheck clean harness-anthropic-dry harness-anthropic harness-openai-dry harness-openai harness-bedrock-dry harness-bedrock harness-azure-dry harness-azure harness-all-dry score score-dry replicate paper paper-html paper-clean
 
 help:  ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -39,7 +39,7 @@ type-check:  ## Run mypy in strict mode.
 	$(UV) run mypy .
 
 security:  ## Run bandit security scan on source.
-	$(UV) run bandit -r corpus harness -ll -c pyproject.toml
+	$(UV) run bandit -r corpus harness paper -ll -c pyproject.toml
 
 secret-scan:  ## Run gitleaks against the working tree + history.
 	@command -v gitleaks >/dev/null 2>&1 || { \
@@ -181,3 +181,12 @@ replicate:  ## Run every API harness live and score. Requires all vendor credent
 	@$(MAKE) -s score
 	@echo ""
 	@echo "✓ Replication complete. Scored results at results/results_v1.csv."
+
+paper:  ## Build paper HTML + PDF from paper/paper.md. Needs pandoc + `--extra paper`.
+	$(UV) run python -m paper.build
+
+paper-html:  ## Build only the HTML (no weasyprint dependency needed).
+	$(UV) run python -m paper.build --html-only
+
+paper-clean:  ## Remove generated paper artifacts.
+	rm -f paper/paper.html paper/paper.pdf
