@@ -252,6 +252,8 @@ def _emit_row(entry: RubricEntry, d1: D1Result) -> dict[str, Any]:
     row["mean_prompt_score"] = (
         "" if d1.mean_prompt_score is None else f"{d1.mean_prompt_score:.3f}"
     )
+    row["verification"] = entry.verification
+    row["last_verified"] = entry.last_verified
     return row
 
 
@@ -270,6 +272,8 @@ CSV_HEADERS: Final[tuple[str, ...]] = (
     "measured",
     "prompts_scored",
     "mean_prompt_score",
+    "verification",
+    "last_verified",
 )
 
 
