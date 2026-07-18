@@ -27,6 +27,9 @@ credentials.json
 # Raw capture tempfiles (sanitized finals go in results/raw/*.json once locked)
 results/raw/*.tmp
 results/raw/*.partial
+# Local dry-run outputs — never committed. The locked results live in
+# results/raw/<tool>.json once the v1.0.0 tag ships.
+results/raw/*.dryrun.json
 
 # OS
 .DS_Store
