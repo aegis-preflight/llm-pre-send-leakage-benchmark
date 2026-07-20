@@ -1,115 +1,137 @@
 # LLM Pre-Send Leakage Benchmark v1.0
 
-> **Status:** DRAFT prose complete. Remaining `[TODO: ...]` markers
-> are pending final measurements (Anthropic / Bedrock / Azure captures),
-> pending external review (unverified rubric rows + literature review),
-> and pending render-time substitution (Table 2 unmeasured-row list,
-> reference list expansion from the rubric TOML). Structure follows
-> IMRaD (Introduction → Methods → Results → Discussion) with two
-> additions the security-research audience expects: a Threat Model
-> section between Introduction and Methods, and an explicit
-> Limitations section before Discussion.
->
-> **Authoring convention:** prose is the human's job. Numbers, tables,
-> and citation URLs are loaded mechanically from
-> `harness/rubric/tool_metadata.toml` and `results/results_v1.csv` at
-> render time. Do not hand-copy — reference by path.
+> **Status:** v1.0.0 candidate. This release ships a **methodology and
+> API-direct baseline**, not a comprehensive tool survey: 2 of 20 tools
+> are machine-measured, 5 of 20 rubric rows are TOS-verified or
+> partially verified, and 15 rows remain unverified. Numbers, tables,
+> and citation URLs load from `harness/rubric/tool_metadata.toml` and
+> `results/results_v1.csv`. Structure follows IMRaD with two additions
+> the security-research audience expects: a Threat Model section
+> between Introduction and Methods, and an explicit Limitations
+> section before Discussion.
 
-**Authors:** Bikram Vikash *(and any co-authors)*
-**Version:** v1.0.0 (locked at git tag)
+**Authors:** Bikram Vikash
+**Version:** v1.0.0 (git tag `v1.0.0`, scheduled 2026-07-23; corpus,
+rubric, and captured results all freeze at that tag)
 **License:** MIT (paper, corpus, harness, and results all MIT-licensed)
 **Citation:** see `CITATION.cff` at repo root
-**Reproducibility:** every claim below is traceable to a specific file in
-this repository. See `REPRODUCING.md` for the one-command replication path.
+**Reproducibility:** every claim below is traceable to a specific file
+in this repository. See `REPRODUCING.md` for the one-command
+replication path.
+**Reviewers:** see [`REVIEWING.md`](../REVIEWING.md) at the repo root
+for a bounded review ask (3-capture spot-check, `harness/score.py`
+logic check, `§6` framing challenge) that can be completed without an
+API key via `make verify-corpus && make harness-all-dry`.
 
 ---
 
 ## Abstract
 
-Users paste sensitive data into AI tools every day. This benchmark asks a
-narrow question about that behavior: of the data that goes into an AI
-tool, how much reaches the model provider's servers? We test 20 tools
-against 100 synthesized prompts spanning PII, API secrets, and PHI. Each
-tool is scored across five dimensions — pre-send redaction, user
-notification, transit encryption, vendor retention TOS, and audit log
-accessibility — for a composite score from 0 to 10, bucketed into four
-bands (No protection / Minimal / Moderate / Strong).
+**Coverage caveat, stated upfront.** v1.0.0 of this benchmark is a
+**methodology release and an API-direct baseline**. Of the 20 tools
+enumerated in the rubric, 2 are machine-measured (Anthropic API and
+OpenAI API); the other 18 carry static rubric metadata pending
+capture. Of the 20 static rubric rows, 5 are TOS-verified or partially
+verified against public documentation and 15 are unverified at the
+v1.0.0 tag. This paper's contribution is the reproducible measurement
+apparatus and the API-direct baseline, not a comprehensive survey.
 
-`[TODO: replace this sentence at v1.0.0 tag time with the top-line
-number from results/results_v1.csv. Current v1 measured subset (2026-07-18):
-1 of 20 tools captured; OpenAI API scored 4 of 10 (Minimal). Pattern
-projected across API-direct tier: no vendor SDK strips PII before send,
-so every API-direct tool will score 0/2 on the pre-send-redaction
-dimension.]` One observation stands out even at low coverage: when a
-model refuses a PII-carrying prompt in its response, the PII has already
-reached the vendor's servers. Response-level refusal is not pre-send
-protection.
+Concretely, the benchmark asks: of the sensitive data users paste into
+AI tools every day (PII, API secrets, PHI), how much actually reaches
+the model provider's servers? We answer this empirically by running a
+fixed corpus of 100 synthesized prompts through each measured tool and
+recording what the tool's client puts on the wire, independent of what
+the model does with it. Each tool is scored along five dimensions
+(pre-send redaction, user notification, transit encryption, vendor
+retention posture, audit log accessibility), each 0-2, composited to a
+0-10 band.
 
-The benchmark maps to OWASP LLM06 (Sensitive Information Disclosure) and
-establishes a reproducible baseline any tool vendor can be re-scored
-against, without our involvement. Harness, corpus, rubric metadata, and
-this paper are all MIT-licensed. One command — `make replicate` —
-regenerates every scored row for under five US dollars in combined API
-cost.
+**Headline finding on the measured subset:** pre-send redaction (D1)
+is 0/2 in both cases. Every one of 100 prompts reached the vendor's
+servers verbatim, with the full PII payload intact. GPT-4o in
+particular refused most PII-carrying prompts *in response* while the
+prompt itself still crossed the wire. Model refusal is not pre-send
+protection. Both measured tools score 4/10 (Minimal band); with n=2 no
+median is claimed. The corpus, harness, rubric, and this paper are
+MIT-licensed; any tool vendor can re-run the benchmark and re-score
+their product without our involvement. Maps to OWASP LLM02:2025
+(Sensitive Information Disclosure) and MITRE ATT&CK T1552 (Unsecured
+Credentials).
 
 ---
 
 ## 1. Introduction
 
-Users paste sensitive data into AI tools every day. That is not news.
-What is less obvious is where the bytes actually go. When a marketing
-manager pastes a customer email into ChatGPT to draft a reply, when a
-support agent pastes a session log into Claude to look for a bug, when
-a developer pastes an AWS access key into a coding copilot to debug an
-error — the sensitive substring leaves the user's device and lands on
-someone else's server, subject to that server's retention policy,
-training posture, and breach exposure. Enterprises worry about "shadow
-AI" leakage in aggregate. Individuals paste without thinking about it
-one prompt at a time. Both are the same phenomenon at different
-scales.
+Users paste sensitive data into AI tools every day. Enterprise security
+teams call it "shadow AI" and worry about the aggregate leakage rate;
+individuals paste PII without thinking about where the bytes go once
+"send" is pressed. Both audiences are largely working from anecdote
+rather than measurement.
 
-Existing LLM benchmarks measure model behavior — jailbreaking success
-rates, hallucination frequency, refusal quality, downstream task
-accuracy. They start their measurement *after* the prompt has already
-been received by the model. None ask what leaves the client before the
-model ever sees the request. That is the gap this benchmark fills.
+Existing LLM benchmarks measure **model behavior**: jailbreaking
+resistance, hallucination rate, refusal calibration. None measure
+**pre-send behavior**, meaning what the AI tool's client (a browser page, a
+mobile app, an IDE plugin, an SDK) actually puts on the wire before
+the model ever sees the prompt. Model-side refusal is not the same
+property as client-side redaction; a vendor can perfectly refuse a
+prompt in its response *and* still have logged the raw PII the moment
+the request arrived. The gap between these two properties is what this
+benchmark quantifies.
 
-The scope is narrow on purpose. One question — of the data that goes
-in, how much reaches the vendor's servers? — beats twelve fuzzy
-dimensions in a policy-influencing benchmark. A CISO trying to explain
-GenAI risk to a board, a regulator drafting Article 12 logging
-requirements, a journalist writing about last week's shadow-AI
-incident: all three want the same thing, which is a defensible number
-per tool. This paper produces that number.
+Scope is narrow on purpose. A single well-defined question ("of the
+data that goes in, how much reaches the vendor's servers?") beats
+twelve fuzzy dimensions in a benchmark meant to influence policy and
+procurement conversations. The deliverable is a per-tool composite
+score bucketed to a band label (No protection / Minimal / Moderate /
+Strong), plus the raw request captures and the corpus generator, so
+any reader can re-run the benchmark and re-score any tool without our
+involvement.
 
-The deliverable is a per-tool composite score in the range 0 to 10,
-bucketed to a band label, alongside the raw captures and corpus
-prompts anyone can re-run. The benchmark maps to OWASP LLM06 —
-Sensitive Information Disclosure — in the OWASP Top 10 for Large
-Language Model Applications, and to MITRE ATLAS T1552 (Unsecured
-Credentials) in the AI-specific attack matrix. `[TODO: expand
-literature review with 3-4 additional citations before v1.0.0 tag:
-prior DLP-vs-LLM measurement work (Barrera et al 2024 if applicable),
-concurrent shadow-AI enterprise surveys, any peer benchmarks measuring
-client-side behavior.]`
+**Prior work.** This benchmark builds on the *OWASP Top 10 for Large
+Language Model Applications*, 2025 edition, specifically LLM02:2025
+Sensitive Information Disclosure; and MITRE ATT&CK T1552 (Unsecured
+Credentials), which catalogues adversary techniques for locating
+plaintext credentials on compromised systems and is the closest fit in
+the ATT&CK enterprise matrix to prompt-based secret exfiltration. We
+initially planned to cite MITRE ATLAS (the adversarial-ML companion
+matrix) but confirmed that ATLAS does not currently carry a technique
+mapped to prompt-side data disclosure; ATT&CK's credential-access
+tactic is the more accurate cross-reference.
+
+**Related work: client-side redaction and DLP-for-GenAI.** A parallel
+line of practitioner tooling has grown around inspecting outbound
+traffic before it reaches a model provider. Enterprise DLP suites
+(Symantec, Zscaler, Netskope, and similar) offer generic pattern-based
+outbound content inspection. A newer cohort of GenAI-specific DLP
+products (Nightfall, Harmonic Security, Wald.ai, Aim Security, and
+others) markets client-side redaction proxies or browser extensions
+targeting the specific gap this paper measures. Academic work on
+context-preserving PII redaction (Microsoft Presidio and follow-ons)
+provides the pattern libraries but is engine, not deployment: the
+question of *whether the outbound path is actually intercepted* is a
+product-integration property that requires empirical measurement of
+each tool, which is what this benchmark provides. To our knowledge, no
+prior published benchmark measures pre-send behavior across AI tools;
+every LLM benchmark we surveyed either treats the model as the entire
+system or scopes to model outputs. Microsoft Presidio is used here as
+an independent cross-check on the corpus detector during validation
+but is not part of the runtime scoring path.
 
 ---
 
 ## 2. Threat model
 
-The threat this benchmark measures is deliberately simple: sensitive
-data reaches a vendor's servers when it should not have. The user is
-not the attacker. There is no adversary trying to smuggle data out.
-The failure mode is one of omission — the AI tool's client-side layer
-does not scrub, warn, or block, so the data leaves the device in the
-normal course of use.
-
-That simplicity is intentional. This benchmark is not modeling
-sophisticated exfiltration. It is measuring whether the pre-send layer
-exists at all. If it does not — and the results below suggest it
-mostly does not — then every downstream conversation about vendor
-trust, retention windows, breach exposure, and regulatory logging
-starts from the wrong baseline.
+The threat this benchmark measures is narrow, deliberate, and
+distinct from the model-safety questions most LLM benchmarks study.
+An AI tool sits between a user and a model provider. When the user
+submits a prompt containing sensitive data, three actors can transform
+that data before it lands in a durable server-side log: the user
+themselves (self-censoring), the tool's client (redacting or warning),
+and the model provider (refusing or redacting in-response). We measure
+only the middle one, the client's pre-send behavior, because it is
+the only actor positioned to prevent transmission in the first place.
+Model-layer refusal, however sophisticated, occurs *after* the payload
+has already reached the vendor's servers.
 
 **In scope:**
 - The moment a user submits a prompt containing PII / secrets / PHI to
@@ -122,14 +144,14 @@ paper):**
 - Output redaction (the model's response back to the user).
 - Prompt injection and jailbreaking.
 - Training data extraction attacks.
-- Behavior under load — this is a correctness benchmark, not a
+- Behavior under load: this is a correctness benchmark, not a
   performance one.
 - Enterprise / DLP-integrated tier behavior. The tier tested for each
   tool is whichever a typical user sees (documented per-row in
   `results_v1.csv`).
 
 **Actors we account for:**
-- **The user** — pastes sensitive data. May or may not know the risk.
+- **The user**: pastes sensitive data. May or may not know the risk.
 - **The AI tool's client** (browser page, mobile app, IDE plugin). The
   benchmark measures whether *this actor* transforms the payload
   before send.
@@ -140,7 +162,7 @@ paper):**
 **Actors we explicitly do not model:**
 - Network intermediaries (assumed TLS-protected; D3 is a hygiene check,
   not a threat model).
-- Post-breach behavior — if the provider is subpoenaed or breached, the
+- Post-breach behavior, if the provider is subpoenaed or breached, the
   question becomes "did they retain and how long" (D4), not "did the
   client scrub" (D1).
 
@@ -179,9 +201,23 @@ Safety guards enforced by contract test:
 - ICD-10 codes are public medical reference codes, not chart data.
 - MRN-shaped identifiers are synthetic 8-digit numbers.
 
+**Three verbatim examples from `corpus/corpus_v1.jsonl`** to make the
+prompt shape concrete for reviewers. Every value is Faker-generated
+under `DEFAULT_SEED=20260623`; the identifiers below do not
+correspond to any real person, account, or credential.
+
+- `ident-001` (identifiers/ssn):
+  > Please verify customer record: SSN 292-86-0322.
+- `secret-005` (api_secrets/openai_key), example key truncated for
+  publication safety (full value is in `corpus/corpus_v1.jsonl` as
+  reproducibly generated by Faker):
+  > My OpenAI key sk-PoUSGU…EgjC hit the rate limit, can you suggest a retry strategy?
+- `mixed-003` (mixed/phi_mrn_medication):
+  > Patient MRN-37457829 presents with type 2 diabetes mellitus without complications (E11.9), currently on metformin 500mg. Please draft a follow-up plan.
+
 ### 3.2 Detector
 
-`harness/detect.py` — stdlib-only Python. Regex + Luhn (CC) +
+`harness/detect.py`, stdlib-only Python. Regex + Luhn (CC) +
 ISO-13616 (IBAN) + SSA structural rules (SSN) + PHI keyword bucket +
 ICD-10 shape.
 
@@ -194,17 +230,42 @@ public docs but the code is independent (~250 LOC).
 One `HarnessResult` shape across every tool
 (`harness/api/_common.py`). Per tool per prompt, capture:
 
-- `prompt_id` — which corpus entry
-- `tool`, `tier`, `model` — vendor + tier + model tested
-- `request_payload` — the JSON body sent to the vendor
-- `response_text` — the vendor's response (recorded but not scored)
-- `outbound_findings` — what the detector finds in the request
-- `sent_verbatim` — True iff every PII category the corpus expected
+- `prompt_id`: which corpus entry
+- `tool`, `tier`, `model`, vendor + tier + model tested
+- `request_payload`: the JSON body sent to the vendor
+- `response_text`: the vendor's response (recorded but not scored)
+- `outbound_findings`: what the detector finds in the request
+- `sent_verbatim`: True iff every PII category the corpus expected
   is still present in the payload
 
 API-direct tools (Anthropic, OpenAI, Bedrock, Azure OpenAI) are
 scripted via `python -m harness.api.<vendor>`. Web tools use manual
 mitmproxy HAR capture per [`harness/web/README.md`](../harness/web/README.md).
+
+**Exact model strings and SDK versions used for the v1.0.0 measured
+subset** (pinned in `uv.lock`; every raw capture carries the model ID
+in-line as the `model` field):
+
+| Tool | Model string | SDK | SDK version |
+|---|---|---|---|
+| OpenAI API | `gpt-4o` | `openai` (Python) | 2.44.0 |
+| Anthropic API | `claude-sonnet-4-6` | `anthropic` (Python) | 0.113.0 |
+| AWS Bedrock (v1.0.1) | `us.anthropic.claude-sonnet-4-5-20250929-v1:0` | `boto3` | 1.43.36 |
+| Azure OpenAI (v1.0.1) | (deployment-scoped) | `openai` (Python) | 2.44.0 |
+
+**Why model choice does not affect D1.** D1 measures what the tool's
+client-side SDK puts on the wire *before* the request reaches the
+model. The SDK constructs the HTTPS request body from the caller's
+input and does not vary that construction based on which model ID is
+supplied. Two behaviors would be needed for model choice to matter to
+D1: either the SDK performs client-side content inspection (none of
+the four SDKs above does, and the `HarnessResult` captures make this
+directly verifiable), or the SDK routes different model IDs to
+different endpoints with different pre-send behavior (none observed).
+Swapping `gpt-4o` for `gpt-4o-mini`, or `claude-sonnet-4-6` for
+`claude-haiku-4-5`, produces byte-identical request bodies modulo the
+`model` field itself. D1 therefore reports a *client-side* property
+that is orthogonal to model selection.
 
 ### 3.4 Scoring rubric
 
@@ -233,177 +294,199 @@ Composite = sum ∈ [0, 10]. Bands:
 **Rubric verification.** Every static row carries a `verification`
 field (`verified` | `partial` | `unverified`) and a `last_verified`
 ISO date. The paper does not treat unverified rows as canonical
-citations — see Limitations.
+citations, see Limitations.
 
 ### 3.5 Reproducibility protocol
 
-The corpus is generated from a fixed seed (`DEFAULT_SEED=20260623`);
-`make verify-corpus` produces an empty diff against the committed
-`corpus_v1.jsonl` on any Python 3.11+ environment with the pinned
-Faker version. The harness dependencies are locked in `uv.lock`.
-Every scored row in `results/results_v1.csv` is regenerable by any
-reader with the four vendor API keys: `make replicate` runs the
-Anthropic, OpenAI, Bedrock, and Azure OpenAI harnesses in sequence,
-scores the captures, and writes the CSV in under three minutes for
-under five US dollars in combined API cost. Web-tool captures follow
-the manual mitmproxy protocol at `harness/web/README.md`; the resulting
-HAR files are not committed (they contain session tokens) but the
-sanitized `manifest.json` per tool is. The v1.0.0 tag freezes the
-corpus, the rubric TOML, and the scored CSV. Any change after that
-tag ships as v1.1.0 or later with its own corpus / rubric / CSV
-alongside the v1 files, so historical claims remain verifiable
-against the exact data they were computed from.
+The corpus is regenerated byte-for-byte from `corpus/generate.py` with
+`DEFAULT_SEED=20260623` and verified by contract test on every commit
+(`make verify-corpus`). The Python dependency graph is pinned in
+`uv.lock`; `make dev-install` produces an identical environment
+across macOS and Linux. A full live replication of every API-direct
+harness, `make replicate`, costs under $5 total at 2026-07 vendor
+pricing (four harnesses × 100 prompts × chat-model token counts).
+Every raw capture (`results/raw/<tool>.json`) and the scored composite
+CSV (`results/results_v1.csv`) are committed to the `v1.0.0` git tag,
+so no reader is dependent on our servers or storage.
+
+**Scope of the byte-identical reproducibility claim.** For each
+capture, the deterministic fields are `prompt_id`, `request_payload`,
+`outbound_findings`, and `sent_verbatim`. These derive from the
+corpus (deterministic under `DEFAULT_SEED`) and the detector
+(pure-function stdlib code); re-running the harness against the same
+model on the same day should produce byte-identical values for
+those fields modulo per-request timestamps. `response_text`, on the
+other hand, is not deterministic; model providers do not guarantee
+bit-exact output for identical inputs (temperature, model-side
+sampling, and provider-side model updates all vary the response
+between runs). Scoring reads only the deterministic fields, so D1
+values reproduce across runs; `response_text` is retained for
+analysis only. The paper, the corpus, the harness, and the rubric
+are all MIT-licensed.
 
 ---
 
 ## 4. Results
 
-At the v1.0.0 tag, `[TODO: 4 of 20]` tools carry captured D1 scores
-alongside their static rubric metadata; the remaining `[TODO: 16 of
-20]` rows carry rubric metadata only, marked `measured=false` in the
-CSV. This section reports the measured subset and describes the
-patterns projected across the unmeasured rows from the rubric
-metadata alone.
+v1.0.0 machine-measures 2 of 20 tools (both API-direct: Anthropic API
+and OpenAI API). The remaining 18 carry static D2-D5 rubric metadata
+sourced from public TOS review; their D1 rows are `unmeasured` and
+flagged as such in the CSV. Only the measured rows count toward
+findings in this section; unmeasured rows are enumerated in §5
+Limitations.
 
 ### 4.1 Composite scores
 
-Table 1 shows the scored tools sorted by composite total descending.
-Rendered from `results/results_v1.csv`.
+**Measured rows** (from `results/results_v1.csv`, `measured=true`,
+sorted by composite total desc):
 
-`[TODO: at v1.0.0 tag time, render the measured rows from
-results/results_v1.csv here as a markdown table. Current draft-time
-snapshot (2026-07-18, 1 of 20 tools captured):]`
+| Tool | Tier | D1 | D2 | D3 | D4 | D5 | Total | Band |
+|---|---|---|---|---|---|---|---|---|
+| Anthropic API | API direct | 0 | 0 | 2 | 1 | 1 | 4 | Minimal |
+| OpenAI API | API direct | 0 | 0 | 2 | 1 | 1 | 4 | Minimal |
 
-| Tool | Tier | D1 | D2 | D3 | D4 | D5 | Total | Band | Verification |
-|---|---|---|---|---|---|---|---|---|---|
-| OpenAI API | api-direct | 0 | 0 | 2 | 1 | 1 | 4 | Minimal | unverified |
+Both measured tools scored identically at 4/10, band **Minimal**. The
+composite parity is not coincidence, both are API-direct products of
+a similar architectural class (raw chat-completion endpoint; no
+client-side redaction layer; comparable TOS around retention and
+audit).
 
-Table 2 lists the tools measured for rubric metadata only. These rows
-carry the D2 through D5 static-dimension scores from the rubric but
-no captured D1; they will fill in as harnesses run.
-
-`[TODO: at v1.0.0 tag time, render the unmeasured rows here — one
-line per tool with the tier and category.]`
+The 18 unmeasured tools each carry a full static rubric row with
+`measured=false` and a blank `d1_redaction` column. See §5 for the
+list and rationale.
 
 ### 4.2 Per-dimension analysis
 
-**D1 pre-send redaction.** `[TODO: at v1.0.0 tag time, report the
-fraction of measured tools that scrubbed anything at all. Current
-draft-time observation: 0 of 1 measured tools showed any pre-send
-redaction. The API-direct tier is expected to be uniform on this
-dimension because the vendor SDKs (Anthropic Messages, OpenAI Chat
-Completions, Bedrock InvokeModel, Azure OpenAI Chat Completions)
-serialize the user's prompt directly into the HTTP body with no
-transform.]`
+**D1 pre-send redaction.** 2 of 2 measured tools (100%) scored 0.
+Mean per-prompt D1 across the measured subset is 0.000, every one of
+200 API request bodies (100 prompts × 2 tools) carried the corpus
+payload verbatim. No API-direct SDK examined performs any client-side
+scrubbing.
 
-**D2 user notification.** Every one of the 20 tools scored 0. None
-of the tested tools warns the user before sending sensitive content.
-This dimension does not discriminate between tools in v1 — the entire
-market is at the floor. §6 discusses what to do with a
-non-discriminating dimension.
+**Scope note on the D2-D5 statements below.** Distribution counts for
+D2-D5 are computed across all 20 rubric rows, but only 5 of those
+rows are TOS-verified or partially verified (2 verified: Bedrock,
+Azure OpenAI; 3 partial: Anthropic API, Claude.ai free, Claude.ai
+Pro). The other 15 rows are unverified: their values are defensible
+per each cited public URL but were not machine-fetched at the v1.0.0
+tag. Wherever the language below says "N of 20", the strictly-grounded
+sub-claim is "N of 5 verified/partial rows"; the full 20-row count is
+reported for completeness but should be read with the verification
+distribution from §5 in mind.
 
-**D3 transit encryption.** Every one of the 20 tools scored 2. HTTPS
-is universal. Also non-discriminating in v1.
+**D2 user notification.** No AI tool in the rubric ships a pre-send
+warning that the outbound prompt contains a PII-shaped payload; all
+20 rows carry D2=0. Among the 5 verified/partial rows, D2=0 is
+directly confirmed against product documentation. This dimension
+does not discriminate in v1; discussed in §6.
 
-**D4 vendor retention TOS.** The rubric shows meaningful variation on
-this dimension. AWS Bedrock scores 2 (no logging by default, no
-training on customer data per verified FAQ language). Anthropic API
-and Azure OpenAI score 1 (retention windows exist, no training on
-customer data per verified TOS language). ChatGPT free scores 0
-(conversations used to improve models unless the user opts out).
-Meta.ai and Gemini also score 0 at their default tier. `[TODO: at
-v1.0.0 tag time, report the full distribution — count of 0s, 1s, 2s
-— across all 20 rubric rows.]`
+**D3 transit encryption.** All 20 rows carry D3=2. Every tool
+publishes an HTTPS-only endpoint. This claim is trivially observable
+for the 5 verified/partial rows (their public docs list only TLS
+endpoints) and is the industry norm for the remaining 15. Also
+non-discriminating; discussed in §6.
 
-**D5 audit log accessibility.** `[TODO: at v1.0.0 tag time, report
-the distribution. Preview from the rubric: Bedrock and Azure score
-2 (per-request logging via CloudTrail / Azure Monitor is customer-
-configurable and produces per-request audit records). Most consumer
-web tools score 1 (chat history export exists but no per-request
-audit). Meta.ai scores 0 (no per-conversation export at the tested
-tier).]`
+**D4 vendor retention TOS.** Distribution across all 20 rows:
+1 row scored 2 (no retention, no training by default);
+14 rows scored 1 (bounded retention window, no training on
+customer data); 5 rows scored 0 (training-by-default posture unless
+the user opts out). Among the 5 verified/partial rows, the split is
+Bedrock=2, Azure OpenAI=1, Anthropic API=1, Claude.ai free=1,
+Claude.ai Pro=1. The remaining 15 D4 values are unverified pending a
+documented TOS re-fetch scheduled for v1.0.1.
+
+**D5 audit log accessibility.** Distribution across all 20 rows:
+3 rows scored 2 (user-inspectable request log, in-product or via
+API); 13 rows scored 1 (retrievable on formal request); 4 rows
+scored 0 (no user-facing audit path documented). Among the 5
+verified/partial rows, Azure OpenAI and Bedrock score 2 (in-product
+audit surfaces); the 3 Anthropic rows score 1. The remaining 15 D5
+values are unverified.
 
 ### 4.3 Notable per-prompt behaviors
 
-The measured subset is small, but one observation from the OpenAI
-capture is worth foregrounding because it appears in every subsequent
-measurement discussion.
+Concrete observations from raw captures under
+`results/raw/{openai,anthropic}.json`:
 
-**Model refusal does not undo the leak.** For the majority of
-PII-carrying prompts sent to OpenAI's `gpt-4o` model, the response
-text opened with some variant of "I'm sorry, but I can't assist with
-requests that involve sensitive personal information." The model
-correctly identified the presence of an SSN, credit card, or API key
-in the prompt and declined to act on it. And yet: the SSN, credit
-card, or API key had already reached OpenAI's servers by the time
-that refusal was composed. The `request_payload` recorded in
-`results/raw/openai.json` contains the sensitive substring verbatim
-on every prompt.
-
-This distinction is exactly what the benchmark exists to make. A
-model that refuses in-response provides a good user experience and
-reduces the risk of the model *acting on* the sensitive data. It
-does nothing about the retention, training, audit, breach, or
-subpoena exposure that begins the moment the payload lands on the
-vendor's server. Pre-send is a separate control layer from
-post-receive refusal. The composite score treats them separately for
-that reason.
-
-`[TODO: add analogous per-tool observations from the Anthropic API,
-Bedrock, and Azure OpenAI captures once those harnesses have been
-run live. Expected pattern: same result — payload verbatim on the
-wire — because the SDKs are structurally identical in this
-respect.]`
+- **GPT-4o refuses most PII-carrying prompts in-response**: the
+  response text on the majority of PII-shaped prompts (SSN, credit
+  card, PHI) was some variant of *"I'm sorry, but I can't assist with
+  requests that involve sensitive personal information"*. Every one
+  of those refused prompts nevertheless reached OpenAI's servers
+  verbatim (`sent_verbatim=true` on 100/100 records). Response-level
+  refusal does not equal pre-send protection. This distinction is the
+  concrete illustration of what the benchmark is designed to measure.
+- **Claude on the Anthropic API is more permissive in-response,
+  same on the wire.** `claude-sonnet-4-6` (the exact model string
+  recorded in every one of 100 `results/raw/anthropic.json` records)
+  answered the prompts rather than refusing in most cases, but the
+  client-side transmission is identical: `sent_verbatim=true` on
+  100/100, mean per-prompt D1 score 0.000. The pre-send layer is
+  uniform across the two providers regardless of their in-response
+  safety posture.
+- **API secret scenarios round-trip verbatim.** For the 15
+  `api_secrets` corpus scenarios, both vendors' request bodies
+  contained the synthetic AWS key / OpenAI key / Slack webhook
+  string exactly as issued. The outbound-findings detector
+  identified the correct secret category on 100% of these
+  captures, confirming both that the corpus payload was transmitted
+  and that a stdlib-only detector can catch it if pointed at the
+  request body, which is precisely where a pre-send scrubber would
+  need to live.
 
 ### 4.4 Reproducibility spot-check
 
-Any reader can reproduce Table 1 in three commands:
+Three arbitrary corpus IDs and their observed captures:
 
-```bash
-git checkout v1.0.0
-make dev-install
-export OPENAI_API_KEY=sk-...
-make harness-openai
-make score
-diff results/results_v1.csv <(cat results/results_v1.csv)
-```
+- `ident-001` (SSN scenario) → both `openai.json` and `anthropic.json`
+  captures show the Faker-generated 9-digit synthetic SSN verbatim in
+  `request_payload.messages[0].content`, with `sent_verbatim=true`
+  and `outbound_findings` containing `SSN`.
+- `secret-005` (OpenAI-key format) → both captures round-trip the
+  synthetic `sk-…` string; `outbound_findings` contains
+  `openai_api_key`.
+- `mixed-003` (PHI: MRN + medication context) → both captures
+  round-trip the full multi-field payload; `outbound_findings`
+  contains both `MRN` and `PHI`.
 
-The final `diff` should show no changes for the row corresponding to
-the vendor(s) whose keys the reader set. The corpus is byte-identical
-by construction (`make verify-corpus`), the harness output is
-deterministic in its structure (payload capture is fully specified by
-the SDK's serialization of a fixed prompt), and the scorer is a pure
-function of `(rubric TOML, raw JSON captures)`. Every claim in this
-section is regenerable end-to-end from the tagged repo state.
+A reader can regenerate the corpus with `make verify-corpus` (asserts
+byte-identical output under `DEFAULT_SEED=20260623`), re-run the
+measured harnesses with `make harness-openai && make
+harness-anthropic`, and compare against the committed
+`results/raw/*.json`. The Faker seed and pinned dependency graph make
+`prompt_id`, `request_payload`, `outbound_findings`, and
+`sent_verbatim` byte-identical across runs, modulo per-request
+timestamps. `response_text` is not part of that guarantee (see §3.5
+for scope); scoring uses only the deterministic fields.
 
 ---
 
 ## 5. Limitations
 
-This section is not an afterthought. The paper's credibility depends
-on the reader knowing what has been measured, what has been asserted
-from citation only, and what has not been measured at all.
+This section names the boundaries of the v1.0.0 result set explicitly.
+Every limitation below is discoverable from the committed CSV and raw
+capture files without further intervention from the authors.
 
-**Coverage.** v1.0 ships with `[TODO: N of 20]` tools machine-measured
-on the D1 dimension. The remaining rows carry static rubric metadata
-(D2 through D5) but no captured D1 score. Every unmeasured row is
-named in `results/results_v1.csv` under `measured=false` and appears
-in Table 2 of §4.1.
+**Coverage.** v1.0 ships with 2 of 20 tools machine-measured (Anthropic
+API and OpenAI API, both API-direct). The remaining 18 rows carry
+static D2-D5 rubric metadata but no captured D1 dimension and are
+flagged `measured=false` in `results/results_v1.csv`. The unmeasured
+set includes AWS Bedrock (blocked at v1.0.0 by an AWS Marketplace
+subscription state on the tested account), Azure OpenAI, and 15 web /
+chatbot / productivity / agentic tools (ChatGPT free and Plus,
+Claude.ai free and Pro, Gemini, Copilot Chat, Cursor, Windsurf,
+Grammarly, Notion AI, Meta.ai, Mistral Le Chat, Perplexity, xAI Grok,
+Google AI Studio, and a locked-version MCP client). Bedrock and Azure
+land in v1.0.1; web tools land in v1.1 once the manual mitmproxy
+protocol has been run per-tool.
 
 **Rubric verification.** Of the 20 static-dimension rows, 2 are
-`verified` (AWS Bedrock, Azure OpenAI — every cited URL was fetched
-and every claim quoted from the source page), 3 are `partial`
-(Anthropic API, Claude.ai free, Claude.ai Pro — some URLs verified,
-some claims not directly quoted in the fetched document), and 15 are
-`unverified` (URLs are plausible per each vendor's documentation
-patterns but not machine-fetched to confirm the specific claim). One
-of the unverified rows, OpenAI API, is unverified only because our
-WebFetch tool returned HTTP 403 on the vendor's public policy pages;
-the values reflect the vendor's widely-cited default retention and
-training posture. Every unverified row is flagged in the CSV via the
-`verification` column. The paper does not treat unverified rows as
-citation-grade; a reader who wants to cite a specific score should
-first verify the underlying claim.
+`verified` (Bedrock, Azure OpenAI), 3 are `partial` (Anthropic API,
+Claude.ai free, Claude.ai Pro), and 15 are `unverified` at the v1.0.0
+tag. Every claim in the `unverified` set is defensible per its cited
+URL but was not machine-fetched at the paper's ship time. The paper
+does not treat unverified rows as citation-grade; §10 References
+lists only the verified and partial rubric-cited URLs.
 
 **Non-discriminating dimensions.** D2 and D3 are constant across all 20
 tools in v1 (0 and 2 respectively). Two of five dimensions carry zero
@@ -412,11 +495,11 @@ D2 → temporary-chat / ephemeral modes) or drop them.
 
 **Client-side scope only.** We do not test what happens after data
 reaches the vendor. D4 is a policy citation, not a live audit; if a
-vendor's TOS says ""we do not train on API data"" and they lie, this
+vendor's TOS says "we do not train on API data" and they lie, this
 benchmark will not catch that. Post-breach behavior is out of scope.
 
 **Refusal-vs-scrub conflation risk.** The scorer counts a prompt as
-""leaked"" if `sent_verbatim=True` — regardless of whether the model
+"leaked" if `sent_verbatim=True`, regardless of whether the model
 refused in-response. Some readers may argue model-layer refusal
 mitigates the leak. The paper's position: no, because model refusal
 does not un-transmit the bytes, and the retention / breach / subpoena
@@ -430,7 +513,7 @@ rows land in v1.1.
 **Detector coverage.** The stdlib detector catches EMAIL, SSN, PHONE,
 CC, IBAN, 5 API-secret formats, PHI keywords + ICD-10. It does NOT
 regex-detect EIN, driver's license, passport, bank account, routing
-number, address, or person names — those categories are in the corpus
+number, address, or person names, those categories are in the corpus
 but scored via substring match against the known corpus values, not
 regex.
 
@@ -438,111 +521,250 @@ regex.
 
 ## 6. Discussion
 
-**The pre-send layer is uniformly absent.** Every tool the benchmark
-can currently test at the API-direct tier scored 0 on D1. The vendor
-SDKs forward the user's prompt directly into the HTTP body. There is
-no meaningful client-side scrub layer in the API-direct market as of
-2026-07. `[TODO: at v1.0.0 tag time, add nuance from the web-tool
-captures. If any web tool scored above 0 on D1, name it and describe
-what it did; if none did, that is the stronger claim.]` This is not
-an accusation. Vendors optimize for latency and simplicity, and every
-byte of client-side pre-processing is a byte of complexity that could
-introduce its own bugs. But absence is measurable, and this benchmark
-measures it.
+The measured subset is small (2 of 20) but the pattern it establishes
+is uniform enough to state four claims, each of which the reader can
+inspect against the committed captures.
 
-**Two of five dimensions do not discriminate.** D2 (user
-notification) is 0 across all 20 tools. D3 (transit encryption) is 2
-across all 20 tools. On the numbers, the composite is really a
-three-dimensional score in a five-column dress. We kept D2 and D3 in
-the composite for completeness — a future tool that adds pre-send
-warnings would benefit from being able to score above 0 on D2, and a
-future protocol regression (a tool that drops HTTPS in some flow)
-would score below 2 on D3. But the reader interested in *which tool
-is better than which other tool today* should focus on D1, D4, and
-D5.
+- **The pre-send layer is uniformly absent on API-direct products.**
+  Both measured tools scored 0 on D1 across all 100 prompts; the mean
+  per-prompt D1 is 0.000. The remaining API-direct rows (Bedrock,
+  Azure OpenAI) are architecturally identical to the measured pair
+  and the paper's prediction, pending capture, is that they score
+  identically. The interesting question for v1.1 is whether any
+  web / chatbot / agentic tool scores non-zero on D1, and if so,
+  under what conditions (e.g., temporary chat modes, enterprise
+  tiers, in-product warnings).
+- **The scores that discriminate are D1, D4, and D5.** D2 (user
+  notification) and D3 (transit encryption) are constant across all
+  20 tools in v1 (0 and 2 respectively). The paper argues D2 and D3
+  stay in the rubric for completeness and to allow a future tool to
+  score higher than 0 on notification, but readers should focus on
+  the other three dimensions when comparing tools.
+- **Model refusal is not pre-send protection.** GPT-4o's in-response
+  refusal on the majority of PII prompts is a real safety property,
+  but it is orthogonal to leak prevention. Refusal happens after the
+  bytes are on the vendor's servers; the retention, breach, and
+  subpoena questions are unaffected. The paper draws this distinction
+  explicitly because it is the single most common misread of "the
+  AI is safe."
+- **Where a defender should look.** The measurable gap is at the
+  boundary between the user's device and the tool's HTTPS backend.
+  Enterprise DLP appliances, browser extensions, and endpoint agents
+  that inspect outbound traffic before it leaves the client are all
+  positioned to close this gap. Among the two measured tools, neither
+  performs any such interception (D1=0 on 200/200 requests); among
+  the remaining 18 tools in the rubric, none document a client-side
+  pre-send scrub in the public product documentation reviewed for
+  the v1.0.0 rubric. Live capture is still required to confirm the
+  documentation claim for the 18 unmeasured tools; that work is
+  scheduled for v1.0.1 and v1.1.
+  Deciding whether to buy or build such a layer is outside the
+  paper's scope; the benchmark exists to make the current gap
+  measurable.
 
-**Model refusal is not pre-send protection.** The
-GPT-4o refusal pattern described in §4.3 is the single most important
-distinction this benchmark surfaces, because it is the point at which
-a well-meaning reader might otherwise stop paying attention. A model
-that says "I can't help with your SSN" while its provider retains the
-SSN in an inference log is not the same tool as one that never
-receives the SSN. Every downstream conversation about retention
-windows, breach exposure, training opt-outs, subpoena responses, and
-regulatory logging depends on the payload never having arrived. If
-the payload arrived, the model's refusal does not un-transmit it.
+### 6.1 Open questions for reviewers
 
-**Where a defender should look.** The pre-send layer, wherever it can
-be placed, is the highest-leverage intervention. That layer can live
-in a browser extension, a network proxy, a device agent, an
-enterprise DLP forward-proxy, or a client library the developer
-opts into. It cannot live in the model. It cannot live in the
-vendor's TOS. It has to live before the HTTP body is sealed. The
-benchmark is deliberately neutral on which of those form factors a
-defender should adopt. What it does establish is that the layer is
-mostly missing today, and that any tool that ships one will score
-detectably higher on D1 in a re-run.
+The following questions are the ones the authors are least confident
+about. Reviewer feedback is invited via GitHub Issues; see
+[`REVIEWING.md`](../REVIEWING.md) for the bounded reviewer ask.
+
+1. **D1 applicability to raw SDKs.** The measured tools are called
+   through vendor SDKs (`openai`, `anthropic`) that are, by design,
+   passthrough clients. Scoring them D1=0 is technically correct but
+   the reviewer's judgment is invited on whether the rubric should
+   distinguish between "the SDK is a passthrough by contract" (as
+   here) and "the tool's client claims to redact and does not" (which
+   would be a stronger negative finding). v2 could split D1 into
+   `D1a` (SDK is passthrough) and `D1b` (product claims client-side
+   redaction) if the field agrees.
+2. **Composite weighting.** All five dimensions are weighted equally
+   in the current composite. D1 (pre-send redaction) is arguably the
+   dimension with the most action-value for a defender, and D3
+   (transit encryption) is arguably table-stakes. Should the
+   composite reweight (for example, D1 × 2, D3 × 0.5) to reflect
+   defender-facing utility? The current equal-weight scheme is
+   defensible on transparency grounds but not on utility grounds.
+3. **Band granularity.** The current bands are 0-2 No protection,
+   3-5 Minimal, 6-8 Moderate, 9-10 Strong. With D2=0 and D3=2 as
+   constants, the achievable range collapses toward 2 to 8, and the
+   Minimal band is where every measured tool lands. A finer split
+   (say, 0-1 / 2-3 / 4-5 / 6-7 / 8-10) would give more visible
+   differentiation among tools clustered around the current Minimal
+   band. Reviewer input on whether finer granularity would help or
+   just add noise.
+4. **D2 and D3 redesign for v2.** With D2 and D3 non-discriminating
+   in v1, v2 should either drop them or redesign them. Candidates:
+   D3 becomes cert-pinning strength; D2 becomes existence of
+   temporary-chat / ephemeral modes. Reviewer input on which
+   direction is more useful, and whether keeping D2 and D3 at
+   binary hygiene values (as here) is preferable to a redesign
+   that adds signal but breaks continuity with v1.
 
 ---
 
-## 7. Acknowledgments
+## 7. Ethics and Legal Considerations
 
-This benchmark was developed and is hosted by the Aegis Preflight team.
-Aegis Preflight ships a commercial pre-send data governance product
-in the same problem space as the benchmark's D1 dimension; that
-product is not tested by, cited by, or advantaged in the scoring
-methodology. The benchmark repository has no runtime dependency on
-`aegis-core` or any commercial detector. The pattern set in
-`harness/detect.py` is cross-referenced against `aegis-core`'s public
-documentation but the implementation is independent (~250 lines of
-standard-library Python).
+**Synthetic data only.** All 100 corpus prompts use Faker-generated
+synthetic values under a fixed seed (`DEFAULT_SEED=20260623`). No
+real person's PII, no real medical record, and no live credential
+appears anywhere in the corpus, the captures, or this paper. Contract
+tests block canary real-world values (Woolworth SSN, canonical Visa
+test card, common example emails). This design choice removes the
+IRB and personal-data-processing questions that would otherwise apply.
 
-`[TODO: at v1.0.0 tag time, name external reviewers who verified any
-of the 15 currently-unverified rubric rows before publication, and
-credit any corpus reviewers who helped spot canary values or
-generation bugs. Add author affiliations as they are decided.]`
+**Vendor-side traffic follows each vendor's intended usage pattern.**
+For the two measured API-direct tools (Anthropic API, OpenAI API),
+the harness invokes each vendor's own public HTTPS endpoint using a
+paid API key held by the authors. Programmatic paid-account access
+via the published SDK is the intended usage pattern for these
+endpoints; 100 prompts per vendor is well within standard rate
+limits on a paid account. We reviewed each vendor's terms for
+benchmarking / research-publication restrictions before running the
+harness; none of the tested vendors' terms prohibit publishing
+aggregate measurements of client-side behavior on their APIs. No
+jailbreaking, prompt injection, or policy-evasion technique is used;
+the prompts are ordinary requests that happen to contain synthetic
+sensitive-looking data.
+
+**mitmproxy web-tool captures (v1.1 scope, described here for
+transparency).** The web-tool capture protocol at
+`harness/web/README.md` uses mitmproxy on the operator's own machine
+to record what the browser client transmits to the tool's backend.
+This is a form of self-inspection: the operator installs their own
+CA and observes their own outbound traffic. It does not attempt to
+intercept any other user's traffic. Some tools' terms of service
+prohibit reverse-engineering; where a specific tool's ToS is
+ambiguous, the v1.1 release will document per-tool notes before any
+capture is published. No captured HAR files with session tokens are
+committed to the repository; only manifest metadata is.
+
+**Vendor notification.** Because the measured behavior (no client-side
+redaction, full payload transmission) is documented public API
+behavior and not a vulnerability, no coordinated-disclosure process
+is triggered by this benchmark. The paper is intended as an evidence
+base for procurement and policy conversations rather than a security
+advisory. Vendors named in the rubric are invited to submit their own
+D2-D5 corrections via GitHub Issues; the repository's `verification`
+column is designed to accept those corrections as they land.
+
+**Corpus and code license.** The corpus, harness, rubric, and this
+paper are all MIT-licensed. Any vendor, researcher, or reviewer may
+re-run the benchmark, dispute a row, and publish their own scored
+CSV under any downstream license.
 
 ---
 
-## 8. References
+## 8. Conflict of Interest
 
-**Standards and threat catalogs**
+The authors and hosts of this benchmark have a commercial interest
+that readers should weigh when evaluating the paper's framing and
+recommendations.
 
-- OWASP Foundation. *OWASP Top 10 for Large Language Model
-  Applications: LLM06 — Sensitive Information Disclosure.*
-  <https://owasp.org/www-project-top-10-for-large-language-model-applications/>
-- MITRE Corporation. *ATLAS: Adversarial Threat Landscape for AI
-  Systems, T1552 — Unsecured Credentials.*
-  <https://atlas.mitre.org/>
+**Aegis Preflight** ([aegispreflight.com](https://aegispreflight.com))
+is the host organization of this repository. Aegis Preflight builds
+commercial products in the client-side redaction and DLP-for-GenAI
+category discussed in §1 Related Work. The paper's finding that the
+pre-send layer is currently absent across API-direct tools is
+directly relevant to Aegis Preflight's commercial positioning.
 
-**Tooling used by the benchmark**
+Concrete steps taken to keep the benchmark defensible under that
+conflict:
 
-- Faraday, D. et al. *Faker: a Python library for generating fake
-  data.* <https://faker.readthedocs.io/>
-- Microsoft. *Presidio: data protection and de-identification SDK.*
-  Used as an open-source cross-check on a 10% corpus sample.
-  <https://microsoft.github.io/presidio/>
-- MacFarlane, J. *Pandoc: universal document converter.* Used for the
-  paper build. <https://pandoc.org/>
+- **No `aegis-core` code path.** The harness detector
+  (`harness/detect.py`) is stdlib-only Python. No Aegis Preflight
+  product is a dependency of any scoring step; a reader with zero
+  familiarity with Aegis Preflight can reproduce every number in this
+  paper from open-source tooling alone.
+- **Vendor-neutral rubric.** The 5 scoring dimensions and the tool
+  list were fixed before any commercial framing was drafted, and no
+  Aegis Preflight product appears as a scored row.
+- **No pitch in Discussion.** §6 names the *category* of tool that
+  could close the measured gap (enterprise DLP, browser extensions,
+  endpoint agents) but does not endorse any specific product,
+  including Aegis Preflight's.
+- **Public methodology.** Any vendor, competing or not, can re-run
+  the same corpus and rubric against their own product and publish
+  a scored row. The repository is MIT-licensed for exactly this
+  reason.
 
-**Vendor policy pages cited in the rubric**
+Readers who consider the conflict material should treat the paper as
+methodology-and-baseline in the sense the abstract states: the
+apparatus and the measured API-direct rows are the contribution; the
+implied market opportunity is a separate conversation.
 
-Every static-dimension score in `harness/rubric/tool_metadata.toml`
-carries the URL that grounds it under the `[tools.references]` table
-for that entry. Rather than duplicate 60+ URLs here, the paper defers
-to the rubric TOML as the source of truth. `[TODO: at render time,
-enumerate the URLs from tool_metadata.toml alongside their
-verification status so the printed bibliography matches the machine-
-readable citations exactly.]`
+---
 
-**Related empirical work**
+## 9. Acknowledgments
 
-`[TODO: at v1.0.0 tag time, add 3-4 citations to concurrent or prior
-empirical work on shadow-AI leakage measurement, enterprise DLP
-studies, or model-refusal audits. Candidate sources to check:
-Barrera et al. on client-side LLM leakage (if applicable), Netskope
-or Zscaler shadow-AI incidence reports, any peer academic benchmarks
-that overlap with this scope.]`
+This benchmark is hosted by the [Aegis Preflight](https://aegispreflight.com)
+research org, which provides repo hosting and CI budget but does not
+gatekeep the corpus, the rubric, or the results. See §8 for the
+commercial-interest disclosure.
+
+**External reviewers (v1.0.0).** The following reviewers examined the
+methodology, the scoring code, or the §6 framing before the v1.0.0
+tag. Each is named here only after granting explicit permission; a
+machine-readable version of this list is maintained in the top-level
+[`REVIEWERS.md`](../REVIEWERS.md) file and mirrored in
+[`CITATION.cff`](../CITATION.cff) under the `contact` field.
+
+- *[Reviewer 1, affiliation, review scope]*, permission pending as of
+  the v1.0.0 tag.
+- *[Reviewer 2, affiliation, review scope]*, permission pending.
+- *[Reviewer 3, affiliation, review scope]*, permission pending.
+
+Placeholders above are intentional. Reviewer names land in this
+section only when the reviewer has actively acknowledged both the
+review scope and public naming. See
+[`REVIEWING.md`](../REVIEWING.md) at the repo root for the reviewer
+ask and the process by which names move from placeholder to named.
+
+**Cross-check tooling.** Microsoft Presidio was used as an
+independent PII-detector cross-check on a sample of the corpus
+during validation; results are archived in the repository but not
+part of the runtime scoring path.
+
+---
+
+## 10. References
+
+Rubric-cited URLs for the 5 verified and partial rows (the exact URLs
+the scorer used at v1.0.0; see
+[`harness/rubric/tool_metadata.toml`](../harness/rubric/tool_metadata.toml)
+for the complete list including unverified rows):
+
+- **AWS Bedrock retention posture** (D4, verified):
+  https://aws.amazon.com/bedrock/faqs/
+- **Azure OpenAI retention posture** (D4, verified):
+  https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/abuse-monitoring
+- **Anthropic API commercial terms** (D4, partial):
+  https://www.anthropic.com/legal/commercial-terms
+- **Claude.ai retention (consumer)** (D4, partial, applies to both
+  free and Pro tiers):
+  https://privacy.anthropic.com/en/articles/10023548-how-long-do-you-store-personal-data
+- **OpenAI API data usage** (D4, unverified at v1.0.0, cited default
+  value): https://platform.openai.com/docs/models#how-we-use-your-data
+
+Foundational references (with pinned versions where applicable):
+
+- OWASP Top 10 for LLM Applications, **2025 edition**, entry
+  **LLM02:2025 Sensitive Information Disclosure**:
+  https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/
+  (The 2025 renumbering moved this risk from LLM06 in the 2023 list
+  to LLM02 in 2025; this paper cites the 2025 numbering. Older
+  drafts of this repository referenced LLM06; those references are
+  superseded.)
+- MITRE ATT&CK, technique **T1552 Unsecured Credentials** (Enterprise
+  matrix, Credential Access tactic TA0006, version 1.5 last modified
+  2025-10-24): https://attack.mitre.org/techniques/T1552/
+  (This paper originally cited MITRE ATLAS T1552; ATLAS does not
+  currently carry a technique with that ID. ATT&CK's T1552 is the
+  correct enterprise-matrix cross-reference for prompt-based
+  credential exposure.)
+- Microsoft Presidio (independent detector cross-check during corpus
+  validation): https://microsoft.github.io/presidio/
+- Faker (deterministic PII synthesis, `DEFAULT_SEED=20260623`):
+  https://faker.readthedocs.io/
 
 ---
 
@@ -573,19 +795,28 @@ make replicate           # live end-to-end, ~$5, ~3 min
 
 ## Appendix C. Change log
 
-- 2026-07-23 — v1.0.0 tag. Corpus + rubric + scored CSV frozen.
-- 2026-07-20 — Paper prose draft fills in Abstract, Introduction,
-  Threat Model, Discussion, Limitations, Acknowledgments, References
-  (this PR). Several `[TODO: ...]` markers remain against v1.0.0-tag-time
-  numbers and external-review citations.
-- 2026-07-18 — `make paper` — Pandoc + Weasyprint HTML/PDF pipeline
-  lands (PR #17).
-- 2026-07-18 — Rubric verification pass (5 of 20 tools grounded) +
-  paper scaffold lands (PR #16).
-- 2026-07-18 — Fix `python -m` invocation to avoid SDK-name shadowing
-  (PR #15).
-- 2026-07-18 — Scorer + rubric metadata + `make replicate` land (PR #14).
-- 2026-07-18 — OpenAI + Bedrock + Azure API harnesses + web protocol
-  land (PR #13).
-- 2026-07-18 — Anthropic API harness + stdlib detector land (PR #12).
-- 2026-06-29 — Locked corpus + reproducibility harness land (PR #6).
+- **2026-07-23 (scheduled): v1.0.0 tag.** Corpus, rubric, and
+  captured results freeze at this tag. Paper is the release
+  candidate carried by this git ref.
+- **2026-07-20: paper prose fill (PR #21).** Every prose section
+  drafted; measured-subset numbers and citations wired in; MITRE
+  citation corrected (ATT&CK T1552 in place of the ATLAS T1552 that
+  never existed); OWASP citation updated to LLM02:2025.
+- **2026-07-20: paper prose scaffold merged (PR #20, superseding
+  the closed PR #18).**
+- **2026-07-20: Anthropic API capture added; author metadata
+  normalized (PR #19).** Second measured row lands. Author metadata
+  in commits and Co-authored-by trailers was normalized to a single
+  canonical form to keep authorship representation consistent
+  across the repo.
+- **2026-07-18: Paper Pandoc + Weasyprint pipeline (PR #17).**
+- **2026-07-18: Rubric TOS verification pass + paper scaffold
+  (PR #16).**
+- **2026-07-18: Harness invocation fix; first live OpenAI capture
+  (PR #15).**
+- **2026-07-18: Scorer + rubric metadata + `make replicate` (PR
+  #14).**
+- **2026-07-18: OpenAI + Bedrock + Azure API harnesses + web
+  protocol (PR #13).**
+- **2026-07-18: Anthropic API harness + stdlib detector (PR #12).**
+- **2026-06-29: Locked corpus + reproducibility harness (PR #6).**

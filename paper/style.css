@@ -250,11 +250,36 @@ code.todo-inline {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Reviewer aid: paragraph numbering                                          */
+/* Adds "P1", "P2", ... to body paragraphs so reviewers can cite a specific   */
+/* paragraph without ambiguity when opening GitHub Issues.                    */
+/* Counter resets at each top-level heading so numbering restarts per §.      */
+/* -------------------------------------------------------------------------- */
+
+body { counter-reset: paragraph; }
+section > h1, section > h2, section > h3 { counter-reset: paragraph; }
+section > p { position: relative; }
+section > p::before {
+  counter-increment: paragraph;
+  content: "P" counter(paragraph);
+  position: absolute;
+  left: -3.2em;
+  top: 0.15em;
+  font-size: 0.7em;
+  color: #999;
+  font-family: "Inter", "Helvetica Neue", sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Print-only refinements                                                     */
 /* -------------------------------------------------------------------------- */
 
 @media print {
   html { padding: 0; max-width: none; }
+  /* Nudge the paragraph markers slightly closer in print. */
+  section > p::before { left: -2.6em; color: #aaa; }
   a { color: #222; text-decoration: underline; }
   /* Show URLs inline for print so the PDF is self-contained. */
   a[href^="http"]::after {

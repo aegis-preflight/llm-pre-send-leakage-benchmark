@@ -24,6 +24,14 @@ paths = [
   # Every "secret" in results/raw/ traces back to a Faker seed in corpus_v*.jsonl.
   '''(^|/)results/raw/.*\.json$''',
 
+  # Paper source and rendered artifacts. Any secret-shaped substring in
+  # paper/paper.md is a truncated illustrative example drawn from
+  # corpus/corpus_v1.jsonl (which is itself Faker-generated). Paper HTML and
+  # PDF outputs are rendered from paper.md and inherit the same safety.
+  '''(^|/)paper/paper\.md$''',
+  '''(^|/)paper/paper\.html$''',
+  '''(^|/)paper/paper\.pdf$''',
+
   # Test files use mock keys and synthetic credentials.
   '''(^|/)tests/''',
 
