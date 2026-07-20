@@ -48,11 +48,13 @@ retention posture, audit log accessibility), each 0-2, composited to a
 
 **Headline finding on the measured subset:** pre-send redaction (D1)
 is 0/2 in both cases. Every one of 100 prompts reached the vendor's
-servers verbatim, with the full PII payload intact. GPT-4o in
-particular refused most PII-carrying prompts *in response* while the
-prompt itself still crossed the wire. Model refusal is not pre-send
-protection. Both measured tools score 4/10 (Minimal band); with n=2 no
-median is claimed. The corpus, harness, rubric, and this paper are
+servers verbatim, with the full PII payload intact. GPT-4o refused
+44 of 100 PII-carrying prompts *in response* (a substantial minority,
+not a majority; the counting heuristic is defined in §4.3); every
+one of those refused prompts still crossed the wire before the
+refusal was generated. Model refusal is not pre-send protection.
+Both measured tools score 4/10 (Minimal band); with n=2 no median
+is claimed. The corpus, harness, rubric, and this paper are
 MIT-licensed; any tool vendor can re-run the benchmark and re-score
 their product without our involvement. Maps to OWASP LLM02:2025
 (Sensitive Information Disclosure) and MITRE ATT&CK T1552 (Unsecured
@@ -414,20 +416,45 @@ values are unverified.
 Concrete observations from raw captures under
 `results/raw/{openai,anthropic}.json`:
 
-- **GPT-4o refuses most PII-carrying prompts in-response**: the
-  response text on the majority of PII-shaped prompts (SSN, credit
-  card, PHI) was some variant of *"I'm sorry, but I can't assist with
-  requests that involve sensitive personal information"*. Every one
-  of those refused prompts nevertheless reached OpenAI's servers
+**How refusal is counted.** A response is counted as a refusal if
+its `response_text` matches any of the following case-insensitive
+patterns: `can't assist`, `cannot assist`, `unable to
+(help|assist|verify|process|share)`, `I'm sorry, but`, `I am sorry,
+but`, `not able to (assist|help|process|share|verify)`, `decline
+to`, `won't (share|provide)`, `against my (policies|guidelines)`.
+This heuristic captures the canonical templated refusal patterns but
+does not capture softer forms of pushback (for example, warnings
+like "Please don't share your SSN here" or "I want to be
+straightforward with you"). Refusal counts under this heuristic
+should therefore be read as a **lower bound** on any form of
+in-response pushback. The counting code is a short Python snippet
+against the committed capture files; any reader can reproduce the
+exact numbers below without re-running the harness.
+
+- **GPT-4o refuses 44 of 100 PII-carrying prompts in-response**;
+  the wire behavior is unchanged. Under the heuristic above, 44
+  response texts match the canonical templated refusal (typically a
+  variant of *"I'm sorry, but I can't assist with requests that
+  involve sensitive personal information"*). The remaining 56
+  responses attempt a substantive answer with varying caveats. Every
+  one of the 100 prompts nevertheless reached OpenAI's servers
   verbatim (`sent_verbatim=true` on 100/100 records). Response-level
-  refusal does not equal pre-send protection. This distinction is the
-  concrete illustration of what the benchmark is designed to measure.
-- **Claude on the Anthropic API is more permissive in-response,
-  same on the wire.** `claude-sonnet-4-6` (the exact model string
-  recorded in every one of 100 `results/raw/anthropic.json` records)
-  answered the prompts rather than refusing in most cases, but the
-  client-side transmission is identical: `sent_verbatim=true` on
-  100/100, mean per-prompt D1 score 0.000. The pre-send layer is
+  refusal does not equal pre-send protection. This distinction is
+  the concrete illustration of what the benchmark is designed to
+  measure.
+- **Claude's warning language differs from GPT-4o's, the wire
+  behavior is identical.** `claude-sonnet-4-6` (the exact model
+  string recorded in every one of 100 `results/raw/anthropic.json`
+  records) matches the refusal heuristic on 29 of 100 prompts.
+  Manual inspection of the 71 "non-refusals" shows that many of
+  them are softer forms of pushback ("Please don't share your SSN
+  here"; "I want to be straightforward with you: I can't help
+  with...") that the templated heuristic does not catch. The 29 is
+  therefore a lower bound on Claude's in-response pushback rate;
+  the true rate is higher and the two providers may be closer in
+  substance than the raw refusal counts suggest. The pre-send
+  transmission behavior is identical either way: `sent_verbatim=true`
+  on 100/100, mean per-prompt D1 score 0.000. The pre-send layer is
   uniform across the two providers regardless of their in-response
   safety posture.
 - **API secret scenarios round-trip verbatim.** For the 15
@@ -552,12 +579,15 @@ inspect against the committed captures.
   score higher than 0 on notification, but readers should focus on
   the other three dimensions when comparing tools.
 - **Model refusal is not pre-send protection.** GPT-4o's in-response
-  refusal on the majority of PII prompts is a real safety property,
-  but it is orthogonal to leak prevention. Refusal happens after the
-  bytes are on the vendor's servers; the retention, breach, and
-  subpoena questions are unaffected. The paper draws this distinction
-  explicitly because it is the single most common misread of "the
-  AI is safe."
+  refusal on 44 of 100 prompts (a substantial minority, not a
+  majority, under the counting heuristic in §4.3) is a real safety
+  property, but it is orthogonal to leak prevention. Refusal happens
+  after the bytes are on the vendor's servers; the retention,
+  breach, and subpoena questions are unaffected. The paper draws
+  this distinction explicitly because it is the single most common
+  misread of "the AI is safe": the argument holds regardless of
+  whether the refusal rate is 44% or 100%, because every prompt
+  reaches the vendor either way.
 - **Where a defender should look.** The measurable gap is at the
   boundary between the user's device and the tool's HTTPS backend.
   Enterprise DLP appliances, browser extensions, and endpoint agents
