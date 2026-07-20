@@ -119,12 +119,18 @@ The automated harness ships around 15 July, scoring around 18 July, and per-tool
 
 Key dates for the v1.0.0 release.
 
-| Date | Milestone |
-|---|---|
-| **2026-07-03** | Hypothesis pre-test against three tools. Confirm or pivot the headline. |
-| **2026-07-05** | Co-author signed, or Plan B (solo with three named peer reviewers). |
-| **2026-07-19** | Paper locked. No further edits. |
-| **2026-07-23** | Publication. `v1.0.0` tag. Paper, harness, corpus, and results released together. |
+| Date | Milestone | Status |
+|---|---|---|
+| **2026-06-29** | Locked corpus + reproducibility harness (PR #6) | done |
+| **2026-07-18** | Anthropic / OpenAI / Bedrock / Azure API harnesses + scorer + rubric (PRs #12–#14) | done |
+| **2026-07-18** | Live OpenAI capture; first measured row | done |
+| **2026-07-20** | Anthropic capture (second measured row); paper prose drafted; reviewer-track revisions | done |
+| **2026-07-23** | `v1.0.0` tag. Paper, harness, corpus, and results released together. | scheduled |
+| **v1.0.1** | AWS Bedrock capture (blocked at v1.0.0 by AWS Marketplace subscription state); Azure OpenAI capture; TOS re-fetch pass on the 15 unverified rubric rows | pending |
+| **v1.1** | Web-tool captures via mitmproxy per `harness/web/README.md` | pending |
+
+The Appendix C change log in `paper/paper.md` is the authoritative
+per-PR record; this table is a reader-facing summary.
 
 ---
 
