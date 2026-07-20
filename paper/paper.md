@@ -110,12 +110,18 @@ context-preserving PII redaction (Microsoft Presidio and follow-ons)
 provides the pattern libraries but is engine, not deployment: the
 question of *whether the outbound path is actually intercepted* is a
 product-integration property that requires empirical measurement of
-each tool, which is what this benchmark provides. To our knowledge, no
-prior published benchmark measures pre-send behavior across AI tools;
-every LLM benchmark we surveyed either treats the model as the entire
-system or scopes to model outputs. Microsoft Presidio is used here as
-an independent cross-check on the corpus detector during validation
-but is not part of the runtime scoring path.
+each tool, which is what this benchmark provides. To our knowledge,
+no prior published benchmark measures **pre-send behavior of deployed
+AI tools** end-to-end (harness plus scoring rubric plus committed
+per-prompt captures). The closest prior work is *LLM-Redactor*
+(arXiv:2604.12064), which evaluates PII-redaction *techniques* for
+prompts in isolation but does not measure what any shipping AI-tool
+client actually transmits on the wire; our contribution is the
+field-measurement complement to that technique-evaluation line of
+work. Every other LLM benchmark we surveyed either treats the model
+as the entire system or scopes to model outputs. Microsoft Presidio
+is used here as an independent cross-check on the corpus detector
+during validation but is not part of the runtime scoring path.
 
 ---
 
@@ -485,8 +491,13 @@ protocol has been run per-tool.
 Claude.ai free, Claude.ai Pro), and 15 are `unverified` at the v1.0.0
 tag. Every claim in the `unverified` set is defensible per its cited
 URL but was not machine-fetched at the paper's ship time. The paper
-does not treat unverified rows as citation-grade; §10 References
-lists only the verified and partial rubric-cited URLs.
+does not treat unverified rows as citation-grade. §10 References
+lists the verified and partial rubric-cited URLs plus one
+`unverified` URL, OpenAI API D4, which is included there because it
+backs a measured row (`openai`) whose D4 value must be traceable to
+a public citation even at the reduced verification level; the
+`unverified` status is preserved in the listing so readers can see
+the delta at a glance.
 
 **Non-discriminating dimensions.** D2 and D3 are constant across all 20
 tools in v1 (0 and 2 respectively). Two of five dimensions carry zero
@@ -585,13 +596,17 @@ about. Reviewer feedback is invited via GitHub Issues; see
    defender-facing utility? The current equal-weight scheme is
    defensible on transparency grounds but not on utility grounds.
 3. **Band granularity.** The current bands are 0-2 No protection,
-   3-5 Minimal, 6-8 Moderate, 9-10 Strong. With D2=0 and D3=2 as
-   constants, the achievable range collapses toward 2 to 8, and the
-   Minimal band is where every measured tool lands. A finer split
-   (say, 0-1 / 2-3 / 4-5 / 6-7 / 8-10) would give more visible
-   differentiation among tools clustered around the current Minimal
-   band. Reviewer input on whether finer granularity would help or
-   just add noise.
+   3-5 Minimal, 6-8 Moderate, 9-10 Strong (four bands). With D2=0
+   and D3=2 as constants, the achievable range collapses toward 2 to
+   8, and the Minimal band is where every measured tool lands. A
+   finer split into the same four band names but with narrower
+   ranges (0-1 No protection, 2-4 Minimal, 5-7 Moderate, 8-10
+   Strong) would give more visible differentiation among tools
+   clustered around the current Minimal band without introducing a
+   fifth label. Reviewer input on whether finer granularity would
+   help or just add noise; also whether the paper should introduce a
+   fifth band label ("Partial", say) instead of narrowing the
+   existing four.
 4. **D2 and D3 redesign for v2.** With D2 and D3 non-discriminating
    in v1, v2 should either drop them or redesign them. Candidates:
    D3 becomes cert-pinning strength; D2 becomes existence of
@@ -619,12 +634,15 @@ paid API key held by the authors. Programmatic paid-account access
 via the published SDK is the intended usage pattern for these
 endpoints; 100 prompts per vendor is well within standard rate
 limits on a paid account. We reviewed each vendor's terms for
-benchmarking / research-publication restrictions before running the
-harness; none of the tested vendors' terms prohibit publishing
-aggregate measurements of client-side behavior on their APIs. No
-jailbreaking, prompt injection, or policy-evasion technique is used;
-the prompts are ordinary requests that happen to contain synthetic
-sensitive-looking data.
+benchmarking and research-publication restrictions before running
+the harness; none of the tested vendors' terms prohibit publishing
+aggregate measurements of client-side behavior on their APIs. The
+per-vendor URL, retrieval date, clause examined, and review
+conclusion are recorded in
+[`docs/terms-review.md`](../docs/terms-review.md) as dated evidence.
+No jailbreaking, prompt injection, or policy-evasion technique is
+used; the prompts are ordinary requests that happen to contain
+synthetic sensitive-looking data.
 
 **mitmproxy web-tool captures (v1.1 scope, described here for
 transparency).** The web-tool capture protocol at
@@ -705,8 +723,7 @@ commercial-interest disclosure.
 methodology, the scoring code, or the §6 framing before the v1.0.0
 tag. Each is named here only after granting explicit permission; a
 machine-readable version of this list is maintained in the top-level
-[`REVIEWERS.md`](../REVIEWERS.md) file and mirrored in
-[`CITATION.cff`](../CITATION.cff) under the `contact` field.
+[`REVIEWERS.md`](../REVIEWERS.md) file.
 
 - *[Reviewer 1, affiliation, review scope]*, permission pending as of
   the v1.0.0 tag.
@@ -763,6 +780,10 @@ Foundational references (with pinned versions where applicable):
   credential exposure.)
 - Microsoft Presidio (independent detector cross-check during corpus
   validation): https://microsoft.github.io/presidio/
+- *LLM-Redactor* (closest prior work; evaluates PII-redaction
+  techniques on prompts in isolation, does not measure deployed
+  AI-tool client behavior): arXiv:2604.12064,
+  https://arxiv.org/abs/2604.12064
 - Faker (deterministic PII synthesis, `DEFAULT_SEED=20260623`):
   https://faker.readthedocs.io/
 
@@ -795,28 +816,12 @@ make replicate           # live end-to-end, ~$5, ~3 min
 
 ## Appendix C. Change log
 
-- **2026-07-23 (scheduled): v1.0.0 tag.** Corpus, rubric, and
-  captured results freeze at this tag. Paper is the release
-  candidate carried by this git ref.
-- **2026-07-20: paper prose fill (PR #21).** Every prose section
-  drafted; measured-subset numbers and citations wired in; MITRE
-  citation corrected (ATT&CK T1552 in place of the ATLAS T1552 that
-  never existed); OWASP citation updated to LLM02:2025.
-- **2026-07-20: paper prose scaffold merged (PR #20, superseding
-  the closed PR #18).**
-- **2026-07-20: Anthropic API capture added; author metadata
-  normalized (PR #19).** Second measured row lands. Author metadata
-  in commits and Co-authored-by trailers was normalized to a single
-  canonical form to keep authorship representation consistent
-  across the repo.
-- **2026-07-18: Paper Pandoc + Weasyprint pipeline (PR #17).**
-- **2026-07-18: Rubric TOS verification pass + paper scaffold
-  (PR #16).**
-- **2026-07-18: Harness invocation fix; first live OpenAI capture
-  (PR #15).**
-- **2026-07-18: Scorer + rubric metadata + `make replicate` (PR
-  #14).**
-- **2026-07-18: OpenAI + Bedrock + Azure API harnesses + web
-  protocol (PR #13).**
-- **2026-07-18: Anthropic API harness + stdlib detector (PR #12).**
-- **2026-06-29: Locked corpus + reproducibility harness (PR #6).**
+Machine-readable per-release change history is maintained in the
+top-level [`CHANGELOG.md`](../CHANGELOG.md), which follows the
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format and
+records every release under [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The v1.0.0 tag freezes this paper, the corpus, the rubric, and the
+captured results; the pre-tag PR history is preserved in the
+repository's commit log for readers who need it. See
+[`REVIEWING.md`](../REVIEWING.md) for the reviewer-facing change
+process going forward.
