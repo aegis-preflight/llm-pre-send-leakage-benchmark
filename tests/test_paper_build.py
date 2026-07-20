@@ -123,6 +123,15 @@ def test_build_html_renders_bundled_paper(tmp_path: Path) -> None:
     build_html(source, out)
     assert out.is_file()
     html = out.read_text(encoding="utf-8")
-    # Sanity: the paper has real TODO markers we know about.
-    assert '<p class="todo">' in html
     assert "Pre-Send Leakage Benchmark" in html
+    # If the source still has [TODO: ...] markers, the postprocessor
+    # must have tagged them. If the source has no markers left (as of
+    # v1.0.0 candidate), the rendered HTML correctly contains no
+    # .todo callouts. Both states are valid; the assertion checks the
+    # invariant "markers in source iff callouts in HTML".
+    source_has_todo = "[TODO" in source.read_text(encoding="utf-8")
+    html_has_todo_callout = '<p class="todo">' in html or 'code class="todo-inline"' in html
+    assert source_has_todo == html_has_todo_callout, (
+        f"TODO invariant violated: source_has_todo={source_has_todo} "
+        f"but html_has_todo_callout={html_has_todo_callout}"
+    )
