@@ -20,6 +20,10 @@ paths = [
   '''corpus/corpus_v\d+\.jsonl$''',
   '''corpus/corpus_v\d+\.expected\.jsonl$''',
 
+  # Harness capture files — model outputs that echo synthetic corpus payloads.
+  # Every "secret" in results/raw/ traces back to a Faker seed in corpus_v*.jsonl.
+  '''(^|/)results/raw/.*\.json$''',
+
   # Test files use mock keys and synthetic credentials.
   '''(^|/)tests/''',
 
