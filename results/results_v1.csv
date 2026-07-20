@@ -1,6 +1,6 @@
 tool,display_name,tier,category,d1_redaction,d2_notification,d3_encryption,d4_retention,d5_audit,total,band,measured,prompts_scored,mean_prompt_score,verification,last_verified
+anthropic,Anthropic API,api-direct,API direct,0,0,2,1,1,4,Minimal,true,100,0.000,partial,2026-07-18
 openai,OpenAI API,api-direct,API direct,0,0,2,1,1,4,Minimal,true,100,0.000,unverified,
-anthropic,Anthropic API,api-direct,API direct,,0,2,1,1,,,false,0,,partial,2026-07-18
 azure_openai,Azure OpenAI,api-direct,API direct,,0,2,1,2,,,false,0,,verified,2026-07-18
 bedrock,AWS Bedrock (Claude),api-direct,API direct,,0,2,2,2,,,false,0,,verified,2026-07-18
 chatgpt_free,ChatGPT (free),chatgpt-free,Chatbot,,0,2,0,1,,,false,0,,unverified,
