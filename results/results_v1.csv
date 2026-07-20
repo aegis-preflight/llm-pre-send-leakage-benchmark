@@ -1,0 +1,21 @@
+tool,display_name,tier,category,d1_redaction,d2_notification,d3_encryption,d4_retention,d5_audit,total,band,measured,prompts_scored,mean_prompt_score,verification,last_verified
+openai,OpenAI API,api-direct,API direct,0,0,2,1,1,4,Minimal,true,100,0.000,unverified,
+anthropic,Anthropic API,api-direct,API direct,,0,2,1,1,,,false,0,,partial,2026-07-18
+azure_openai,Azure OpenAI,api-direct,API direct,,0,2,1,2,,,false,0,,verified,2026-07-18
+bedrock,AWS Bedrock (Claude),api-direct,API direct,,0,2,2,2,,,false,0,,verified,2026-07-18
+chatgpt_free,ChatGPT (free),chatgpt-free,Chatbot,,0,2,0,1,,,false,0,,unverified,
+chatgpt_plus,ChatGPT Plus,chatgpt-plus,Chatbot,,0,2,1,1,,,false,0,,unverified,
+claude_ai_free,Claude.ai (free),claude-free,Chatbot,,0,2,1,1,,,false,0,,partial,2026-07-18
+claude_ai_pro,Claude.ai (Pro),claude-pro,Chatbot,,0,2,1,1,,,false,0,,partial,2026-07-18
+copilot_chat_web,GitHub Copilot Chat (web),copilot-individual,Code AI,,0,2,1,1,,,false,0,,unverified,
+cursor_web,Cursor (web),cursor-pro,Code AI,,0,2,1,0,,,false,0,,unverified,
+gemini,Google Gemini,gemini-free,Chatbot,,0,2,0,1,,,false,0,,unverified,
+google_ai_studio,Google AI Studio,aistudio-free,Productivity,,0,2,0,1,,,false,0,,unverified,
+grammarly,Grammarly (AI features),grammarly-free,Productivity,,0,2,1,0,,,false,0,,unverified,
+mcp_tool_v1,MCP client v1 (locked at v1.0.0 tag),mcp-default,Agentic,,0,2,1,2,,,false,0,,unverified,
+meta_ai,Meta.ai,meta-ai-free,Chatbot,,0,2,0,0,,,false,0,,unverified,
+mistral_le_chat,Mistral Le Chat,lechat-free,Chatbot,,0,2,1,1,,,false,0,,unverified,
+notion_ai,Notion AI,notion-ai-workspace,Productivity,,0,2,1,1,,,false,0,,unverified,
+perplexity,Perplexity,perplexity-free,Chatbot,,0,2,1,1,,,false,0,,unverified,
+windsurf,Windsurf,windsurf-free,Code AI,,0,2,1,0,,,false,0,,unverified,
+xai_grok,xAI Grok (web),grok-web,Chatbot,,0,2,0,1,,,false,0,,unverified,
