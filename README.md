@@ -6,11 +6,13 @@
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy%20strict-1F5082.svg)](https://mypy.readthedocs.io/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg)](https://github.com/pre-commit/pre-commit)
-[![OWASP LLM06](https://img.shields.io/badge/OWASP-LLM06%20Sensitive%20Info%20Disclosure-005f8b.svg)](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
+[![OWASP LLM02:2025](https://img.shields.io/badge/OWASP-LLM02%3A2025%20Sensitive%20Info%20Disclosure-005f8b.svg)](https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/)
 
-**Status:** Work in progress. Publication: **2026-07-23** (paper + v1.0 dataset).
+**Status:** v1.0.0 release candidate. Publication: **2026-07-23** (paper + v1.0 dataset).
 
-Measures what AI tools send to their model providers. Tests 20 tools against 100 synthesized prompts on a 5-dimension scoring rubric. Open methodology, MIT-licensed.
+**v1.0.0 is a methodology release and an API-direct baseline, not a comprehensive tool survey.** Of 20 tools enumerated in the rubric, 2 are machine-measured (Anthropic API, OpenAI API) and 15 of the 20 rubric rows are TOS-unverified at this tag. This release ships the reproducible measurement apparatus, the corpus, and the API-direct baseline; broader coverage lands in v1.0.1 (Bedrock + Azure) and v1.1 (web tools).
+
+Measures what AI tools send to their model providers. 100 synthesized prompts, 5-dimension scoring rubric, open methodology, MIT-licensed.
 
 ---
 
@@ -45,7 +47,7 @@ Composite scores tier into:
 | 6–8 | Moderate |
 | 9–10 | Strong |
 
-The benchmark maps directly to **OWASP LLM06 — Sensitive Information Disclosure** in the OWASP Top 10 for Large Language Model Applications.
+The benchmark maps directly to **[OWASP LLM02:2025, Sensitive Information Disclosure](https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/)** in the OWASP Top 10 for Large Language Model Applications (2025 edition; renumbered from LLM06 in the 2023 list).
 
 ---
 
@@ -65,11 +67,11 @@ The benchmark deliberately excludes the following. Each is a real concern; each 
 
 20 tools across five categories. The per-tool list is locked at publication and visible in `paper/paper.md` from `v1.0.0` onward. Categories:
 
-- **Chatbots** — web-based conversational AI tools (free + premium tiers tested separately where behavior differs)
-- **Productivity AI** — meeting transcription, document AI, writing assistants
-- **Code AI** — IDE and web-based coding copilots
-- **API direct** — direct LLM API access from major providers
-- **Agentic / MCP** — one tool using the Model Context Protocol
+- **Chatbots**: web-based conversational AI tools (free + premium tiers tested separately where behavior differs)
+- **Productivity AI**: meeting transcription, document AI, writing assistants
+- **Code AI**: IDE and web-based coding copilots
+- **API direct**: direct LLM API access from major providers
+- **Agentic / MCP**: one tool using the Model Context Protocol
 
 ---
 
@@ -106,7 +108,7 @@ git clone https://github.com/aegis-preflight/llm-pre-send-leakage-benchmark.git
 cd llm-pre-send-leakage-benchmark
 make dev-install
 make verify-corpus
-# Expected: ✓ Corpus is reproducible — byte-identical from DEFAULT_SEED=20260623
+# Expected: ✓ Corpus is reproducible, byte-identical from DEFAULT_SEED=20260623
 ```
 
 The automated harness ships around 15 July, scoring around 18 July, and per-tool results in stages after that. The full methodology lands in `paper/paper.md` at the `v1.0.0` tag.
@@ -128,10 +130,9 @@ Key dates for the v1.0.0 release.
 
 ## Authors
 
-- **Bikram Vikash** — Aegis Preflight · [aegispreflight.com](https://aegispreflight.com)
-- *[Co-author byline pending — to be filled by 2026-07-05]*
+- **Bikram Vikash**: Aegis Preflight · [aegispreflight.com](https://aegispreflight.com)
 
-Named peer reviewers will be added to the Acknowledgments section of `paper/paper.md` at publication.
+Named peer reviewers will be added to the Acknowledgments section of `paper/paper.md` at publication. See `paper/paper.md §8` for the commercial-interest disclosure.
 
 ---
 
@@ -145,7 +146,7 @@ See [`CITATION.cff`](CITATION.cff) for machine-readable citation metadata. Stand
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE). Free to use, reproduce, modify, and redistribute. Citation requested but not required.
+MIT, see [`LICENSE`](LICENSE). Free to use, reproduce, modify, and redistribute. Citation requested but not required.
 
 ---
 
