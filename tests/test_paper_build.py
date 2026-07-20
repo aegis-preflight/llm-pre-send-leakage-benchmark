@@ -130,7 +130,9 @@ def test_build_html_renders_bundled_paper(tmp_path: Path) -> None:
     # .todo callouts. Both states are valid; the assertion checks the
     # invariant "markers in source iff callouts in HTML".
     source_has_todo = "[TODO" in source.read_text(encoding="utf-8")
-    html_has_todo_callout = '<p class="todo">' in html or 'code class="todo-inline"' in html
+    html_has_todo_callout = (
+        '<p class="todo">' in html or 'code class="todo-inline"' in html
+    )
     assert source_has_todo == html_has_todo_callout, (
         f"TODO invariant violated: source_has_todo={source_has_todo} "
         f"but html_has_todo_callout={html_has_todo_callout}"
