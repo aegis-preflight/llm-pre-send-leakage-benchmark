@@ -58,18 +58,18 @@ never carries stale numbers.
 
 | § | Section | Status |
 |---|---|---|
-| Abstract | 200 words | TODO |
-| 1 | Introduction | TODO |
-| 2 | Threat model | TODO |
-| 3 | Methods | mostly-fixed; corpus + detector + harness + rubric structure locked |
-| 4 | Results | skeletal; depends on captures landing |
-| 5 | Limitations | drafted; needs numbers |
-| 6 | Discussion | TODO |
-| 7 | Acknowledgments | TODO |
-| 8 | References | TODO — will render from rubric TOML |
+| Abstract | 200 words | **drafted** — 1 TODO for tag-time headline number |
+| 1 | Introduction | **drafted** — 1 TODO for literature-review expansion |
+| 2 | Threat model | **drafted** — no TODOs |
+| 3 | Methods | drafted; corpus + detector + harness + rubric structure locked |
+| 4 | Results | **drafted** — TODOs mark data that fills in as more captures land |
+| 5 | Limitations | **drafted** — 1 TODO for tag-time measured-count |
+| 6 | Discussion | **drafted** — 1 TODO for web-tool nuance after captures land |
+| 7 | Acknowledgments | **drafted** — 1 TODO for external reviewer names |
+| 8 | References | **drafted** — 2 TODOs for tag-time URL enumeration + related work |
 | App A | Raw data pointers | done |
 | App B | Reproducing the benchmark | done — mirrors REPRODUCING.md |
-| App C | Change log | done through 2026-07-18 |
+| App C | Change log | done through 2026-07-20 |
 
 ## Not in this directory (yet)
 
